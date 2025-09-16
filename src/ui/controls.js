@@ -162,8 +162,8 @@ class ControlHandler extends EventEmitter {
             this.emit('channelToggle', 'noise');
         });
 
-        // Help
-        this.screen.key(['h', 'H', '?'], () => {
+        // Help (removed 'h' and 'H' to avoid conflict with H Mode)
+        this.screen.key(['?'], () => {
             this.emit('showHelp');
         });
     }

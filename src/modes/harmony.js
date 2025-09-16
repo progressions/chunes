@@ -116,8 +116,7 @@ class HarmonyMode {
         // Add note
         this.app.screen.key(['p', 'P'], () => this.addRandomNote());
 
-        // Mode toggle
-        this.app.screen.key(['h', 'H'], () => this.app.toggleHarmonyMode());
+        // H key toggle is handled in main.js to avoid conflicts
     }
 
     cleanupKeyHandlers() {
