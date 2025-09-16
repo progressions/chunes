@@ -214,14 +214,42 @@ class EnhancedUIManager {
 
     getPlayheadIndicatorLine() {
         const width = Math.min(60, this.termSize.width - 10);
-        const playheadPosition = Math.floor(width / 2) + 4; // +4 for "Ch1 " prefix
+        const playheadPosition = Math.floor(width / 2);
         let line = '    '; // Space for channel name prefix
 
-        for (let i = 0; i < width; i++) {
-            if (i === Math.floor(width / 2)) {
-                line += chalk.hex('#fdcb6e')('↓'); // Down arrow at playhead position
-            } else {
-                line += ' ';
+        // Add timing grid above channels
+        if (this.mode === 'harmony' && this.patterns) {
+            const timeSignature = this.parameters.timeSignature || '4/4';
+            const beatsPerBar = parseInt(timeSignature.split('/')[0]);
+            const stepsPerBeat = 4; // 16th notes
+            const stepsPerBar = beatsPerBar * stepsPerBeat;
+            const totalSteps = this.parameters.loopLength * 16;
+
+            for (let i = 0; i < width; i++) {
+                const offset = i - playheadPosition;
+                const stepIndex = (this.patternStep + offset + totalSteps) % totalSteps;
+
+                if (i === playheadPosition) {
+                    // Playhead indicator
+                    line += chalk.hex('#fdcb6e')('↓');
+                } else if (stepIndex % stepsPerBar === 0) {
+                    // Bar marker
+                    line += chalk.hex('#4a4a4a')('│');
+                } else if (stepIndex % stepsPerBeat === 0) {
+                    // Beat marker
+                    line += chalk.hex('#3a3a3a')('·');
+                } else {
+                    line += ' ';
+                }
+            }
+        } else {
+            // Simple playhead indicator for non-harmony modes
+            for (let i = 0; i < width; i++) {
+                if (i === playheadPosition) {
+                    line += chalk.hex('#fdcb6e')('↓');
+                } else {
+                    line += ' ';
+                }
             }
         }
 
@@ -434,6 +462,10 @@ class EnhancedUIManager {
             // Show actual pattern data
             const pattern = this.patterns[channelId];
             const totalSteps = pattern ? pattern.length : 128;
+            const timeSignature = this.parameters.timeSignature || '4/4';
+            const beatsPerBar = parseInt(timeSignature.split('/')[0]);
+            const stepsPerBeat = 4; // 16th notes, so 4 steps = 1 beat
+            const stepsPerBar = beatsPerBar * stepsPerBeat;
 
             for (let i = 0; i < width; i++) {
                 // Calculate which step in the pattern corresponds to this position
@@ -444,6 +476,24 @@ class EnhancedUIManager {
                 let char = ' ';
                 let color = this.flowGradient[Math.floor((i / width) * this.flowGradient.length)];
 
+                // Check if this is a bar line (start of measure)
+                if (stepIndex % stepsPerBar === 0) {
+                    // Bar line - use a vertical line
+                    if (!pattern || !pattern[stepIndex]) {
+                        char = '┊';
+                        color = '#4a4a4a'; // Gray for bar lines
+                    }
+                }
+                // Check if this is a beat marker (quarter note)
+                else if (stepIndex % stepsPerBeat === 0) {
+                    // Beat marker - use a dot if no note
+                    if (!pattern || !pattern[stepIndex]) {
+                        char = '·';
+                        color = '#3a3a3a'; // Darker gray for beat dots
+                    }
+                }
+
+                // Show notes if present
                 if (pattern && pattern[stepIndex]) {
                     const note = pattern[stepIndex];
                     if (channelId === 'noise' && note.trigger) {
@@ -455,7 +505,7 @@ class EnhancedUIManager {
                         const noteName = note.note || '';
 
                         // Use distinct symbols for each octave
-                        if (noteName.includes('2')) char = '·';
+                        if (noteName.includes('2')) char = '◦';
                         else if (noteName.includes('3')) char = '•';
                         else if (noteName.includes('4')) char = '●';
                         else if (noteName.includes('5')) char = '◆';
