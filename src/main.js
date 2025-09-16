@@ -82,6 +82,16 @@ class ChiptuneGenerator {
 
             // Start main loop
             this.isRunning = true;
+
+            // Play music immediately
+            const rootFreq = this.musicGenerator.keyFrequencies[this.musicGenerator.key];
+
+            // Start all channels immediately
+            this.audioPlayer.playNote('pulse1', rootFreq * 2, 0.5);
+            this.audioPlayer.playNote('pulse2', rootFreq * 1.5, 0.5);
+            this.audioPlayer.playNote('triangle', rootFreq / 2, 0.5);
+            this.audioPlayer.playNote('noise', 0, 0.1);
+
             this.mainLoop();
 
             // Render screen

@@ -144,7 +144,7 @@ class EnhancedUIManager {
             top: 3,
             left: 0,
             width: '100%',
-            height: 3,
+            height: 5,
             label: ' PARAMETERS ',
             border: {
                 type: 'line',
@@ -166,7 +166,7 @@ class EnhancedUIManager {
     createMusicFlow() {
         this.boxes.musicFlow = blessed.box({
             parent: this.container,
-            top: 6,
+            top: 8,
             left: 0,
             width: '100%',
             height: 6,
@@ -201,7 +201,7 @@ class EnhancedUIManager {
     createStatusBar() {
         this.boxes.status = blessed.box({
             parent: this.container,
-            top: 12,
+            top: 14,
             left: 0,
             width: '100%',
             height: 3,
@@ -219,7 +219,7 @@ class EnhancedUIManager {
             bottom: 0,
             left: 0,
             width: '100%',
-            height: 4,
+            height: 3,
             label: ' CONTROLS ',
             border: {
                 type: 'line'
@@ -231,13 +231,16 @@ class EnhancedUIManager {
     updateParameterDisplay() {
         const params = this.parameters;
 
-        // Simple format without complex colors for now
-        const line1 = ` {cyan-fg}Genre:{/} {bold}${params.genre}{/bold}  {cyan-fg}Key:{/} {bold}${params.key} ${params.scale}{/bold}  {cyan-fg}Tempo:{/} {bold}${params.tempo} BPM{/bold}  {cyan-fg}Time:{/} {bold}${params.timeSignature}{/bold}`;
-        const line2 = ` {cyan-fg}Loop:{/} {bold}${params.loopLength} bars{/bold}  {cyan-fg}Swing:{/} {bold}${params.swing ? 'ON' : 'OFF'}{/bold}  {cyan-fg}Mode:{/} {green-fg}{bold}LIVE{/bold}{/green-fg}`;
+        // Use the pastel colors from the palette
+        const line1 = `  {#fab1a0-fg}Genre:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.genre}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Key:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.key} ${params.scale}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Tempo:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.tempo} BPM{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Time:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.timeSignature}{/#74b9ff-fg}{/bold}`;
+        const line2 = `  {#fab1a0-fg}Loop:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.loopLength} bars{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Swing:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.swing ? 'ON' : 'OFF'}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Mode:{/#fab1a0-fg} {bold}{#00b894-fg}LIVE{/#00b894-fg}{/bold}`;
 
         if (this.boxes.parameters) {
-            this.boxes.parameters.setContent(`\n${line1}\n${line2}`);
-            this.screen.render();
+            this.boxes.parameters.setContent(`\n${line1}\n${line2}\n`);
+            // Force immediate render
+            setImmediate(() => {
+                if (this.screen) this.screen.render();
+            });
         }
     }
 
@@ -388,9 +391,11 @@ class EnhancedUIManager {
     }
 
     updateParameters(parameters) {
-        this.parameters = parameters;
+        this.parameters = { ...this.parameters, ...parameters };
         this.updateParameterDisplay();
-        this.screen.render();
+        if (this.screen) {
+            this.screen.render();
+        }
     }
 
     updateBufferDuration(seconds) {

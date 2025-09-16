@@ -70,6 +70,8 @@ class ProceduralGenerator {
         this.currentChordIndex = 0;
         this.currentMelodyNote = 0;
         this.melodySeed = Math.random();
+        this.firstUpdate = true; // Flag to generate music immediately
+        this.forceFirstNote = true; // Force notes on the very first call
 
         this.regeneratePatterns();
     }
@@ -109,7 +111,9 @@ class ProceduralGenerator {
             currentStepTime = this.stepTime * this.swingAmount;
         }
 
-        if (elapsed >= currentStepTime) {
+        // Generate immediately on first update or when time has passed
+        if (this.firstUpdate || elapsed >= currentStepTime) {
+            this.firstUpdate = false;
             // Move forward by exact step time to prevent drift
             // But if we've fallen too far behind (>2 steps), reset to current time
             if (elapsed > currentStepTime * 2) {
@@ -150,8 +154,9 @@ class ProceduralGenerator {
         const progression = this.genrePatterns[this.genre].chordProgression;
         const chordDegree = progression[this.currentChordIndex];
 
-        // Lead melody (pulse1)
-        if (this.melodyPattern[stepInPattern]) {
+        // Lead melody (pulse1) - force on first note or follow pattern
+        if (this.forceFirstNote || this.melodyPattern[stepInPattern]) {
+            this.forceFirstNote = false;
             const note = this.generateMelodyNote(chordDegree);
             events.pulse1 = {
                 note: `${this.key}4`,
@@ -162,7 +167,7 @@ class ProceduralGenerator {
         }
 
         // Harmony (pulse2) - plays chord tones
-        if (stepInPattern % 4 === 2) { // Slightly offset from melody
+        if (this.forceFirstNote || stepInPattern % 4 === 2) { // Slightly offset from melody
             const harmonyNote = this.generateHarmonyNote(chordDegree);
             events.pulse2 = {
                 note: `${this.key}3`,
@@ -173,7 +178,7 @@ class ProceduralGenerator {
         }
 
         // Bass (triangle)
-        if (this.bassPattern[stepInPattern]) {
+        if (this.forceFirstNote || this.bassPattern[stepInPattern]) {
             const bassNote = this.generateBassNote(chordDegree);
             events.triangle = {
                 note: `${this.key}2`,
@@ -184,7 +189,7 @@ class ProceduralGenerator {
         }
 
         // Drums (noise)
-        if (this.drumKickPattern[stepInPattern]) {
+        if (this.forceFirstNote || this.drumKickPattern[stepInPattern]) {
             events.noise = {
                 trigger: true,
                 type: 'kick',

@@ -1,24 +1,23 @@
-// Continuous audio player that maintains a steady stream
-
+// Ultra-buffered audio player with maximum buffering strategy
 const Speaker = require('speaker');
 const { SquareWaveOscillator, TriangleWaveOscillator, NoiseOscillator } = require('./oscillators');
 
-class ContinuousAudioPlayer {
+class UltraBufferedAudioPlayer {
     constructor() {
         this.sampleRate = 44100;
         this.channels = 2;
         this.bitDepth = 16;
-        this.frameSize = 8192; // Larger frame size to prevent underflow
+        this.frameSize = 32768; // Extremely large frame size
 
         this.speaker = null;
         this.isPlaying = false;
         this.masterVolume = 0.5;
 
-        // Buffer queue for continuous playback
-        this.bufferQueue = [];
-        this.maxQueueSize = 32;
-        this.minQueueSize = 4; // Start playing after this many buffers
-        this.isWriting = false;
+        // Ring buffer for maximum buffering
+        this.bufferSize = this.frameSize * 16; // 16 frames of buffer
+        this.ringBuffer = Buffer.allocUnsafe(this.bufferSize * 2 * this.channels);
+        this.writePos = 0;
+        this.readPos = 0;
 
         // Create oscillators
         this.oscillators = {
@@ -28,23 +27,32 @@ class ContinuousAudioPlayer {
             noise: new NoiseOscillator(this.sampleRate)
         };
 
-        // Channel states - start with a default chord ready to play
+        // Channel states
         this.channelStates = {
-            pulse1: { freq: 523.25, volume: 0.25, active: true },    // C5
-            pulse2: { freq: 392.00, volume: 0.25, active: true },    // G4
-            triangle: { freq: 130.81, volume: 0.25, active: true },  // C3
-            noise: { volume: 0.15, active: true }
+            pulse1: { freq: 0, volume: 0.25, active: false },
+            pulse2: { freq: 0, volume: 0.25, active: false },
+            triangle: { freq: 0, volume: 0.25, active: false },
+            noise: { volume: 0.15, active: false }
         };
+
+        // Pre-generate audio buffers
+        this.pregenBuffers = [];
+        this.bufferIndex = 0;
     }
 
     async initialize() {
         try {
+            // Pre-generate a bunch of buffers
+            for (let i = 0; i < 32; i++) {
+                this.pregenBuffers.push(this.generateSilence());
+            }
+
             this.speaker = new Speaker({
                 channels: this.channels,
                 bitDepth: this.bitDepth,
                 sampleRate: this.sampleRate,
-                lowWaterMark: this.frameSize * 4,
-                highWaterMark: this.frameSize * 8
+                lowWaterMark: this.frameSize * 8,
+                highWaterMark: this.frameSize * 16
             });
 
             this.speaker.on('error', (err) => {
@@ -53,13 +61,19 @@ class ContinuousAudioPlayer {
 
             this.isPlaying = true;
 
-            // Don't pre-fill with silence - start with actual audio
+            // Write a massive amount of silence upfront
+            for (let i = 0; i < 32; i++) {
+                this.speaker.write(this.pregenBuffers[i]);
+            }
 
-            // Start generation loop
+            // Start multiple generation and playback loops
             this.startGenerationLoop();
-
-            // Start the continuous playback loop
             this.startPlaybackLoop();
+
+            // Extra safety loops
+            for (let i = 0; i < 4; i++) {
+                setTimeout(() => this.startPlaybackLoop(), i * 25);
+            }
 
             return true;
         } catch (error) {
@@ -69,55 +83,45 @@ class ContinuousAudioPlayer {
     }
 
     startGenerationLoop() {
-        // Immediately fill to max after starting
-        const fillQueue = () => {
+        const generate = () => {
             if (!this.isPlaying) return;
 
-            // Keep queue topped up with actual audio
-            while (this.bufferQueue.length < this.maxQueueSize) {
-                this.bufferQueue.push(this.generateMixedAudio());
+            // Always keep buffers full
+            while (this.pregenBuffers.length < 32) {
+                const buffer = this.generateMixedAudio();
+                this.pregenBuffers.push(buffer);
             }
+
+            // Continue generating
+            setTimeout(generate, 10);
         };
 
-        // Initial aggressive fill with just a couple buffers to start fast
-        for (let i = 0; i < 2; i++) {
-            this.bufferQueue.push(this.generateMixedAudio());
-        }
-
-        // Then maintain the queue
-        setInterval(() => {
-            fillQueue();
-        }, 25); // Generate every 25ms
+        generate();
     }
 
     startPlaybackLoop() {
         const writeAudio = () => {
-            if (!this.isPlaying || this.isWriting) return;
+            if (!this.isPlaying || !this.speaker || this.speaker.destroyed) return;
 
-            if (this.bufferQueue.length > 0) {
-                this.isWriting = true;
-                const buffer = this.bufferQueue.shift();
-
-                // Emergency refill if queue is low
-                if (this.bufferQueue.length < 8) {
-                    for (let i = 0; i < 16; i++) {
-                        this.bufferQueue.push(this.generateMixedAudio());
-                    }
-                }
-
-                if (this.speaker && !this.speaker.destroyed) {
+            // Write from pre-generated buffers
+            if (this.pregenBuffers.length > 0) {
+                const buffer = this.pregenBuffers.shift();
+                if (buffer) {
                     this.speaker.write(buffer, () => {
-                        this.isWriting = false;
                         if (this.isPlaying) {
                             setImmediate(writeAudio);
                         }
                     });
+
+                    // Immediately queue another write
+                    if (this.pregenBuffers.length > 0) {
+                        setImmediate(writeAudio);
+                    }
                 }
             } else {
-                // Queue empty - generate immediately
+                // Emergency: generate on the fly
                 const buffer = this.generateMixedAudio();
                 this.speaker.write(buffer, () => {
-                    this.isWriting = false;
                     if (this.isPlaying) {
                         setImmediate(writeAudio);
                     }
@@ -125,9 +129,9 @@ class ContinuousAudioPlayer {
             }
         };
 
-        // Start multiple write chains for redundancy
-        for (let i = 0; i < 4; i++) {
-            setTimeout(writeAudio, i * 15);
+        // Start multiple write chains
+        for (let i = 0; i < 8; i++) {
+            setTimeout(writeAudio, i * 5);
         }
     }
 
@@ -141,7 +145,6 @@ class ContinuousAudioPlayer {
 
     generateMixedAudio() {
         const samples = new Float32Array(this.frameSize);
-        let hasAudio = false;
 
         // Generate each channel
         if (this.channelStates.pulse1.active && this.channelStates.pulse1.freq > 0) {
@@ -152,7 +155,6 @@ class ContinuousAudioPlayer {
             for (let i = 0; i < this.frameSize; i++) {
                 samples[i] += pulse1[i] * this.channelStates.pulse1.volume;
             }
-            hasAudio = true;
         }
 
         if (this.channelStates.pulse2.active && this.channelStates.pulse2.freq > 0) {
@@ -163,7 +165,6 @@ class ContinuousAudioPlayer {
             for (let i = 0; i < this.frameSize; i++) {
                 samples[i] += pulse2[i] * this.channelStates.pulse2.volume;
             }
-            hasAudio = true;
         }
 
         if (this.channelStates.triangle.active && this.channelStates.triangle.freq > 0) {
@@ -174,7 +175,6 @@ class ContinuousAudioPlayer {
             for (let i = 0; i < this.frameSize; i++) {
                 samples[i] += triangle[i] * this.channelStates.triangle.volume;
             }
-            hasAudio = true;
         }
 
         if (this.channelStates.noise.active) {
@@ -182,7 +182,6 @@ class ContinuousAudioPlayer {
             for (let i = 0; i < this.frameSize; i++) {
                 samples[i] += noise[i] * this.channelStates.noise.volume;
             }
-            hasAudio = true;
         }
 
         // Convert to PCM
@@ -233,7 +232,7 @@ class ContinuousAudioPlayer {
         this.isPlaying = false;
 
         if (this.speaker) {
-            // Send some silence before closing
+            // Send final silence
             const silence = this.generateSilence();
             this.speaker.write(silence);
 
@@ -248,5 +247,5 @@ class ContinuousAudioPlayer {
 }
 
 module.exports = {
-    ContinuousAudioPlayer
+    UltraBufferedAudioPlayer
 };

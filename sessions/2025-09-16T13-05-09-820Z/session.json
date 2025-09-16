@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-09-16T13:05:09.820Z",
+  "parameters": {
+    "genre": "rock",
+    "key": "D#",
+    "scale": "minor",
+    "timeSignature": "4/4",
+    "tempo": 200,
+    "swing": false,
+    "loopLength": 8
+  },
+  "musicState": {
+    "genre": "rock",
+    "key": "D#",
+    "scale": "minor",
+    "tempo": 200,
+    "loopLength": 8,
+    "currentStep": 107,
+    "swing": false,
+    "timeSignature": "4/4"
+  },
+  "bufferStats": {
+    "duration": 0,
+    "dataPoints": 0,
+    "timelineEvents": 0,
+    "memoryUsage": "0.00"
+  }
+}
