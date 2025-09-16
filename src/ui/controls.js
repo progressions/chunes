@@ -14,48 +14,33 @@ class ControlHandler extends EventEmitter {
         // We'll handle shift detection within each key handler instead
 
         // Parameter controls - Tempo
-        this.screen.key('t', () => {
-            this.emit('parameterChange', 'tempo', 'increase');
-        });
-
-        this.screen.key('T', () => {
-            this.emit('parameterChange', 'tempo', 'decrease');
+        this.screen.key(['t', 'S-t'], (ch, key) => {
+            const direction = key && key.shift ? 'decrease' : 'increase';
+            this.emit('parameterChange', 'tempo', direction);
         });
 
         // Genre
-        this.screen.key('g', () => {
-            this.emit('parameterChange', 'genre', 'next');
-        });
-
-        this.screen.key('G', () => {
-            this.emit('parameterChange', 'genre', 'previous');
+        this.screen.key(['g', 'S-g'], (ch, key) => {
+            const direction = key && key.shift ? 'previous' : 'next';
+            this.emit('parameterChange', 'genre', direction);
         });
 
         // Key
-        this.screen.key('k', () => {
-            this.emit('parameterChange', 'key', 'next');
-        });
-
-        this.screen.key('K', () => {
-            this.emit('parameterChange', 'key', 'previous');
+        this.screen.key(['k', 'S-k'], (ch, key) => {
+            const direction = key && key.shift ? 'previous' : 'next';
+            this.emit('parameterChange', 'key', direction);
         });
 
         // Scale
-        this.screen.key('s', () => {
-            this.emit('parameterChange', 'scale', 'next');
-        });
-
-        this.screen.key('S', () => {
-            this.emit('parameterChange', 'scale', 'previous');
+        this.screen.key(['s', 'S-s'], (ch, key) => {
+            const direction = key && key.shift ? 'previous' : 'next';
+            this.emit('parameterChange', 'scale', direction);
         });
 
         // Loop length
-        this.screen.key('l', () => {
-            this.emit('parameterChange', 'loopLength', 'increase');
-        });
-
-        this.screen.key('L', () => {
-            this.emit('parameterChange', 'loopLength', 'decrease');
+        this.screen.key(['l', 'S-l'], (ch, key) => {
+            const direction = key && key.shift ? 'decrease' : 'increase';
+            this.emit('parameterChange', 'loopLength', direction);
         });
 
         // Ctrl combinations

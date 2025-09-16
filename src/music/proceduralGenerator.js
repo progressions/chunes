@@ -162,7 +162,7 @@ class ProceduralGenerator {
             events.pulse1 = {
                 note: `${this.key}4`,
                 frequency: note.frequency,
-                duration: this.stepTime * 4,
+                duration: this.stepTime * 2,  // Reduced from 4 to 2 for clearer rhythm
                 velocity: 60 + Math.random() * 20
             };
         }
@@ -173,7 +173,7 @@ class ProceduralGenerator {
             events.pulse2 = {
                 note: `${this.key}3`,
                 frequency: harmonyNote.frequency,
-                duration: this.stepTime * 3,
+                duration: this.stepTime * 1.5,  // Reduced from 3 to 1.5 for clearer rhythm
                 velocity: 50 + Math.random() * 20
             };
         }
@@ -184,7 +184,7 @@ class ProceduralGenerator {
             events.triangle = {
                 note: `${this.key}2`,
                 frequency: bassNote.frequency,
-                duration: this.stepTime * 8,
+                duration: this.stepTime * 2,  // Reduced from 8 to 2 for MUCH clearer rhythm
                 velocity: 70 + Math.random() * 20
             };
         }
@@ -194,7 +194,7 @@ class ProceduralGenerator {
             events.noise = {
                 trigger: true,
                 type: 'kick',
-                duration: this.stepTime * 2,
+                duration: this.stepTime * 0.5,  // Short kick for punch
                 velocity: 80 + Math.random() * 10,
                 period: 15
             };
@@ -202,7 +202,7 @@ class ProceduralGenerator {
             events.noise = {
                 trigger: true,
                 type: 'snare',
-                duration: this.stepTime,
+                duration: this.stepTime * 0.25,  // Very short snare for snap
                 velocity: 70 + Math.random() * 10,
                 period: 4
             };
