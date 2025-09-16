@@ -170,7 +170,7 @@ class EnhancedUIManager {
             top: 8,
             left: 0,
             width: '100%',
-            height: 6,
+            height: 7,  // Increased height to accommodate playhead indicator
             label: ' MUSIC FLOW ',
             border: {
                 type: 'line',
@@ -184,6 +184,15 @@ class EnhancedUIManager {
             }
         });
 
+        // Create playhead indicator line at top
+        this.boxes.playheadIndicator = blessed.text({
+            parent: this.boxes.musicFlow,
+            top: 0,
+            left: 1,
+            content: this.getPlayheadIndicatorLine(),
+            tags: true
+        });
+
         // Create channel displays
         const channelNames = ['Ch1', 'Ch2', 'Ch3', 'Ch4'];
         const channelColors = ['#ff6b9d', '#c44569', '#0abde3', '#8e44ad'];
@@ -191,7 +200,7 @@ class EnhancedUIManager {
         for (let i = 0; i < 4; i++) {
             this.boxes[`channel${i + 1}`] = blessed.text({
                 parent: this.boxes.musicFlow,
-                top: i + 1,
+                top: i + 1,  // Shifted down by 1 to accommodate indicator
                 left: 1,
                 content: `${chalk.hex(channelColors[i])(channelNames[i])} ${this.getFlowVisualization(i)}`,
                 tags: true
@@ -199,10 +208,26 @@ class EnhancedUIManager {
         }
     }
 
+    getPlayheadIndicatorLine() {
+        const width = Math.min(60, this.termSize.width - 10);
+        const playheadPosition = Math.floor(width / 2) + 4; // +4 for "Ch1 " prefix
+        let line = '    '; // Space for channel name prefix
+
+        for (let i = 0; i < width; i++) {
+            if (i === Math.floor(width / 2)) {
+                line += chalk.hex('#fdcb6e')('↓'); // Down arrow at playhead position
+            } else {
+                line += ' ';
+            }
+        }
+
+        return line;
+    }
+
     createStatusBar() {
         this.boxes.status = blessed.box({
             parent: this.container,
-            top: 14,
+            top: 15,  // Adjusted down by 1 due to taller music flow box
             left: 0,
             width: '100%',
             height: 3,
@@ -355,7 +380,8 @@ class EnhancedUIManager {
             }
         }
 
-        // Shift buffer and add new character
+        // Shift buffer left and add new character at the right
+        // This makes the music flow from right to left past the stationary playhead
         const buffer = this.flowBuffers[channelId];
         buffer.shift();
         buffer.push(char);
@@ -385,31 +411,33 @@ class EnhancedUIManager {
 
             this.boxes[`channel${channelIndex + 1}`].setContent(content);
         }
+
+        // Update playhead indicator when in harmony mode
+        if (this.mode === 'harmony' && this.boxes.playheadIndicator) {
+            this.boxes.playheadIndicator.setContent(this.getPlayheadIndicatorLine());
+        }
     }
 
     getFlowVisualizationWithPlayhead(channelIndex) {
         const buffer = this.flowBuffers[Object.keys(this.flowBuffers)[channelIndex]];
         const width = Math.min(60, this.termSize.width - 10);
 
-        // Apply gradient coloring with playhead indicator
+        // Apply gradient coloring with stationary playhead at center
         let result = '';
+        const playheadPosition = Math.floor(width / 2); // Playhead stays at center
+
         for (let i = 0; i < width; i++) {
             const char = buffer[i] || ' ';
             const colorIndex = Math.floor((i / width) * this.flowGradient.length);
             const color = this.flowGradient[colorIndex];
 
-            // Show playhead caret at current position
-            if (this.mode === 'harmony' && this.currentLoopPosition !== undefined) {
-                const scaledPosition = Math.floor((this.currentLoopPosition / this.totalLoopSteps) * width);
-                if (i === scaledPosition) {
-                    // Show playhead with preview indicator
-                    if (this.insertMode && this.harmonySelectedChannel === (channelIndex + 1)) {
-                        result += chalk.hex('#00b894').bold('▼'); // Mint green caret for insert preview
-                    } else {
-                        result += chalk.hex('#fdcb6e').bold('▶'); // Yellow playhead
-                    }
+            // Show playhead at fixed center position
+            if (this.mode === 'harmony' && i === playheadPosition) {
+                // Show playhead with preview indicator
+                if (this.insertMode && this.harmonySelectedChannel === (channelIndex + 1)) {
+                    result += chalk.hex('#00b894').bold('▼'); // Mint green caret for insert preview
                 } else {
-                    result += chalk.hex(color)(char);
+                    result += chalk.hex('#fdcb6e').bold('│'); // Yellow vertical line as playhead
                 }
             } else {
                 result += chalk.hex(color)(char);
