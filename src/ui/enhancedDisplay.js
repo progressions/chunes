@@ -60,6 +60,10 @@ class EnhancedUIManager {
             noise: new Array(60).fill(' ')
         };
 
+        // Store pattern data for visualization
+        this.patterns = null;
+        this.patternStep = 0;
+
         // Animation states
         this.animations = {
             startup: false,
@@ -419,28 +423,83 @@ class EnhancedUIManager {
     }
 
     getFlowVisualizationWithPlayhead(channelIndex) {
-        const buffer = this.flowBuffers[Object.keys(this.flowBuffers)[channelIndex]];
+        const channelId = Object.keys(this.flowBuffers)[channelIndex];
         const width = Math.min(60, this.termSize.width - 10);
 
-        // Apply gradient coloring with stationary playhead at center
+        // Build visualization from pattern data if in harmony mode
         let result = '';
         const playheadPosition = Math.floor(width / 2); // Playhead stays at center
 
-        for (let i = 0; i < width; i++) {
-            const char = buffer[i] || ' ';
-            const colorIndex = Math.floor((i / width) * this.flowGradient.length);
-            const color = this.flowGradient[colorIndex];
+        if (this.mode === 'harmony' && this.patterns) {
+            // Show actual pattern data
+            const pattern = this.patterns[channelId];
+            const totalSteps = pattern ? pattern.length : 128;
 
-            // Show playhead at fixed center position
-            if (this.mode === 'harmony' && i === playheadPosition) {
-                // Show playhead with preview indicator
-                if (this.insertMode && this.harmonySelectedChannel === (channelIndex + 1)) {
-                    result += chalk.hex('#00b894').bold('▼'); // Mint green caret for insert preview
-                } else {
-                    result += chalk.hex('#fdcb6e').bold('│'); // Yellow vertical line as playhead
+            for (let i = 0; i < width; i++) {
+                // Calculate which step in the pattern corresponds to this position
+                // The playhead is at center, showing current step
+                const offset = i - playheadPosition;
+                const stepIndex = (this.patternStep + offset + totalSteps) % totalSteps;
+
+                let char = ' ';
+                let color = this.flowGradient[Math.floor((i / width) * this.flowGradient.length)];
+
+                if (pattern && pattern[stepIndex]) {
+                    const note = pattern[stepIndex];
+                    if (channelId === 'noise' && note.trigger) {
+                        // Drum hits
+                        char = note.type === 'kick' ? '█' : '▓';
+                        color = '#e17055'; // Coral for drums
+                    } else if (note.frequency) {
+                        // Musical notes - use different characters for different octaves
+                        const noteName = note.note || '';
+                        if (noteName.includes('2')) char = '▁';
+                        else if (noteName.includes('3')) char = '▃';
+                        else if (noteName.includes('4')) char = '▅';
+                        else if (noteName.includes('5')) char = '▇';
+                        else if (noteName.includes('6')) char = '█';
+                        else char = '▪';
+
+                        // Color based on note name
+                        if (noteName.includes('C')) color = '#ff6b9d';
+                        else if (noteName.includes('D')) color = '#c44569';
+                        else if (noteName.includes('E')) color = '#0abde3';
+                        else if (noteName.includes('F')) color = '#00b894';
+                        else if (noteName.includes('G')) color = '#fdcb6e';
+                        else if (noteName.includes('A')) color = '#a29bfe';
+                        else if (noteName.includes('B')) color = '#fd79a8';
+                    }
                 }
-            } else {
-                result += chalk.hex(color)(char);
+
+                // Show playhead at fixed center position
+                if (i === playheadPosition) {
+                    // Show playhead with preview indicator
+                    if (this.insertMode && this.harmonySelectedChannel === (channelIndex + 1)) {
+                        result += chalk.hex('#00b894').bold('▼'); // Mint green caret for insert preview
+                    } else {
+                        result += chalk.hex('#fdcb6e').bold('│'); // Yellow vertical line as playhead
+                    }
+                } else {
+                    result += chalk.hex(color)(char);
+                }
+            }
+        } else {
+            // Original flow visualization for non-harmony modes
+            const buffer = this.flowBuffers[channelId];
+            for (let i = 0; i < width; i++) {
+                const char = buffer[i] || ' ';
+                const colorIndex = Math.floor((i / width) * this.flowGradient.length);
+                const color = this.flowGradient[colorIndex];
+
+                if (this.mode === 'harmony' && i === playheadPosition) {
+                    if (this.insertMode && this.harmonySelectedChannel === (channelIndex + 1)) {
+                        result += chalk.hex('#00b894').bold('▼');
+                    } else {
+                        result += chalk.hex('#fdcb6e').bold('│');
+                    }
+                } else {
+                    result += chalk.hex(color)(char);
+                }
             }
         }
 
@@ -451,6 +510,7 @@ class EnhancedUIManager {
         this.harmonySelectedChannel = selectedChannel;
         this.insertMode = insertMode;
         this.queuedNote = queuedNote;
+        this.patternStep = currentStep;
 
         // Calculate current position for playhead
         const loopLength = this.parameters.loopLength || 8;
@@ -468,6 +528,16 @@ class EnhancedUIManager {
             this.updateChannelDisplay(i);
         }
         this.screen.render();
+    }
+
+    updatePatternVisualization(patterns, currentStep) {
+        this.patterns = patterns;
+        this.patternStep = currentStep;
+
+        // Update all channel displays with new pattern data
+        for (let i = 0; i < 4; i++) {
+            this.updateChannelDisplay(i);
+        }
     }
 
     startFlowAnimation() {

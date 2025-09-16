@@ -427,10 +427,20 @@ class HarmonyMode {
             // Update display to show current playhead position
             this.updateDisplay();
 
+            // Send pattern visualization data to UI
+            this.sendPatternVisualization();
+
             return events;
         }
 
         return null;
+    }
+
+    sendPatternVisualization() {
+        // Send the current patterns to the UI for visualization
+        if (this.app.uiManager && this.app.uiManager.updatePatternVisualization) {
+            this.app.uiManager.updatePatternVisualization(this.patterns, this.currentStep);
+        }
     }
 
     getCurrentStepEvents() {
@@ -649,6 +659,9 @@ class HarmonyMode {
         if (this.app.uiManager && this.app.uiManager.updateHarmonyDisplay) {
             this.app.uiManager.updateHarmonyDisplay(this.selectedChannel, this.insertMode, this.queuedNote, this.currentStep);
         }
+
+        // Also send pattern data for visualization
+        this.sendPatternVisualization();
     }
 
     getState() {
