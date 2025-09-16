@@ -111,6 +111,7 @@ class ProceduralGenerator {
             currentStepTime = this.stepTime * this.swingAmount;
         }
 
+
         // Generate immediately on first update or when time has passed
         if (this.firstUpdate || elapsed >= currentStepTime) {
             this.firstUpdate = false;
@@ -296,7 +297,9 @@ class ProceduralGenerator {
     updateTempo() {
         // Calculate new step time (time per 16th note)
         this.stepTime = (60 / this.tempo) / 4;
-        // Don't reset lastStepTime - let the next update handle timing naturally
+
+        // Reset timing to start the new tempo immediately
+        this.lastStepTime = Date.now() / 1000;
     }
 
     setLoopLength(measures) {

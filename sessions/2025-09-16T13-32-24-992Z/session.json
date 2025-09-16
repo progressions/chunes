@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-09-16T13:32:24.992Z",
+  "parameters": {
+    "genre": "rock",
+    "key": "G",
+    "scale": "blues",
+    "timeSignature": "3/4",
+    "tempo": 120,
+    "swing": true,
+    "loopLength": 8
+  },
+  "musicState": {
+    "genre": "rock",
+    "key": "G",
+    "scale": "blues",
+    "tempo": 120,
+    "loopLength": 8,
+    "currentStep": 11,
+    "swing": true,
+    "timeSignature": "3/4"
+  },
+  "bufferStats": {
+    "duration": 0,
+    "dataPoints": 0,
+    "timelineEvents": 0,
+    "memoryUsage": "0.00"
+  }
+}

@@ -177,13 +177,8 @@ class ChiptuneGenerator {
             }
         });
 
-        // Parameter controls (delegated to current mode)
-        this.controlHandler.on('parameterChange', (param, value) => {
-            // Let the active mode handle parameter changes
-            if (this.currentMode === 'live' && this.liveMode) {
-                this.liveMode.handleParameterChange(param, value);
-            }
-        });
+        // Parameter controls are handled by the active mode directly
+        // The mode will set up its own listeners in activate()
     }
 
     switchMode(mode) {

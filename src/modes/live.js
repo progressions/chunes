@@ -4,7 +4,7 @@ class LiveMode {
     constructor(app) {
         this.app = app;
         this.isActive = false;
-        this.availableTempos = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 180, 200];
+        this.availableTempos = [60, 80, 100, 120, 140, 160, 180, 200, 240];
         this.availableGenres = ['soft', 'rock', 'bossa'];
         this.availableKeys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         this.availableScales = ['major', 'minor', 'blues'];
@@ -132,7 +132,6 @@ class LiveMode {
 
         // If current value not found, return the first value
         if (index === -1) {
-            console.log(`Current value ${current} not found in`, values, '- using first value');
             return values[0];
         }
 

@@ -28,12 +28,12 @@ class ContinuousAudioPlayer {
             noise: new NoiseOscillator(this.sampleRate)
         };
 
-        // Channel states - start with a default chord ready to play
+        // Channel states - start inactive but ready
         this.channelStates = {
-            pulse1: { freq: 523.25, volume: 0.25, active: true },    // C5
-            pulse2: { freq: 392.00, volume: 0.25, active: true },    // G4
-            triangle: { freq: 130.81, volume: 0.25, active: true },  // C3
-            noise: { volume: 0.15, active: true }
+            pulse1: { freq: 0, volume: 0.25, active: false },
+            pulse2: { freq: 0, volume: 0.25, active: false },
+            triangle: { freq: 0, volume: 0.25, active: false },
+            noise: { volume: 0.15, active: false }
         };
     }
 
@@ -52,8 +52,6 @@ class ContinuousAudioPlayer {
             });
 
             this.isPlaying = true;
-
-            // Don't pre-fill with silence - start with actual audio
 
             // Start generation loop
             this.startGenerationLoop();
@@ -79,9 +77,9 @@ class ContinuousAudioPlayer {
             }
         };
 
-        // Initial aggressive fill with just a couple buffers to start fast
+        // Initial fill with silence to establish audio stream
         for (let i = 0; i < 2; i++) {
-            this.bufferQueue.push(this.generateMixedAudio());
+            this.bufferQueue.push(this.generateSilence());
         }
 
         // Then maintain the queue
@@ -106,7 +104,7 @@ class ContinuousAudioPlayer {
                 }
 
                 if (this.speaker && !this.speaker.destroyed) {
-                    this.speaker.write(buffer, () => {
+                    const written = this.speaker.write(buffer, () => {
                         this.isWriting = false;
                         if (this.isPlaying) {
                             setImmediate(writeAudio);
