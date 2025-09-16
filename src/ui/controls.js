@@ -6,72 +6,65 @@ class ControlHandler extends EventEmitter {
     constructor(screen) {
         super();
         this.screen = screen;
-        this.shiftPressed = false;
-        this.ctrlPressed = false;
 
         this.setupKeyBindings();
     }
 
     setupKeyBindings() {
-        // Track modifier keys
-        this.screen.on('keypress', (ch, key) => {
-            if (key && key.shift !== undefined) {
-                this.shiftPressed = key.shift;
-            }
-            if (key && key.ctrl !== undefined) {
-                this.ctrlPressed = key.ctrl;
-            }
-        });
+        // We'll handle shift detection within each key handler instead
 
         // Parameter controls - Tempo
-        this.screen.key(['t', 'T'], () => {
-            if (this.shiftPressed) {
-                this.emit('parameterChange', 'tempo', 'decrease');
-            } else {
-                this.emit('parameterChange', 'tempo', 'increase');
-            }
+        this.screen.key('t', () => {
+            this.emit('parameterChange', 'tempo', 'increase');
+        });
+
+        this.screen.key('T', () => {
+            this.emit('parameterChange', 'tempo', 'decrease');
         });
 
         // Genre
-        this.screen.key(['g', 'G'], () => {
-            if (this.shiftPressed) {
-                this.emit('parameterChange', 'genre', 'previous');
-            } else {
-                this.emit('parameterChange', 'genre', 'next');
-            }
+        this.screen.key('g', () => {
+            this.emit('parameterChange', 'genre', 'next');
+        });
+
+        this.screen.key('G', () => {
+            this.emit('parameterChange', 'genre', 'previous');
         });
 
         // Key
-        this.screen.key(['k', 'K'], () => {
-            if (this.shiftPressed) {
-                this.emit('parameterChange', 'key', 'previous');
-            } else {
-                this.emit('parameterChange', 'key', 'next');
-            }
+        this.screen.key('k', () => {
+            this.emit('parameterChange', 'key', 'next');
+        });
+
+        this.screen.key('K', () => {
+            this.emit('parameterChange', 'key', 'previous');
         });
 
         // Scale
-        this.screen.key(['s', 'S'], () => {
-            if (this.ctrlPressed) {
-                // Ctrl+S for save loop
-                this.emit('saveLoop');
-            } else if (this.shiftPressed) {
-                this.emit('parameterChange', 'scale', 'previous');
-            } else {
-                this.emit('parameterChange', 'scale', 'next');
-            }
+        this.screen.key('s', () => {
+            this.emit('parameterChange', 'scale', 'next');
+        });
+
+        this.screen.key('S', () => {
+            this.emit('parameterChange', 'scale', 'previous');
         });
 
         // Loop length
-        this.screen.key(['l', 'L'], () => {
-            if (this.ctrlPressed) {
-                // Ctrl+L for load loop
-                this.emit('loadLoop');
-            } else if (this.shiftPressed) {
-                this.emit('parameterChange', 'loopLength', 'decrease');
-            } else {
-                this.emit('parameterChange', 'loopLength', 'increase');
-            }
+        this.screen.key('l', () => {
+            this.emit('parameterChange', 'loopLength', 'increase');
+        });
+
+        this.screen.key('L', () => {
+            this.emit('parameterChange', 'loopLength', 'decrease');
+        });
+
+        // Ctrl combinations
+        this.screen.key('C-s', () => {
+            this.emit('saveLoop');
+        });
+
+        this.screen.key('C-l', () => {
+            this.emit('loadLoop');
         });
 
         // Swing
@@ -90,19 +83,19 @@ class ControlHandler extends EventEmitter {
 
         // Buffer mode navigation
         this.screen.key(['left'], () => {
-            if (this.shiftPressed) {
-                this.emit('bufferSeek', -10);
-            } else {
-                this.emit('bufferSeek', -1);
-            }
+            this.emit('bufferSeek', -1);
+        });
+
+        this.screen.key(['S-left'], () => {
+            this.emit('bufferSeek', -10);
         });
 
         this.screen.key(['right'], () => {
-            if (this.shiftPressed) {
-                this.emit('bufferSeek', 10);
-            } else {
-                this.emit('bufferSeek', 1);
-            }
+            this.emit('bufferSeek', 1);
+        });
+
+        this.screen.key(['S-right'], () => {
+            this.emit('bufferSeek', 10);
         });
 
         this.screen.key(['home'], () => {
@@ -132,30 +125,19 @@ class ControlHandler extends EventEmitter {
 
         // Buffer selection
         this.screen.key(['enter', 'return'], () => {
-            if (this.shiftPressed) {
-                this.emit('bufferSetEnd');
-            } else {
-                this.emit('bufferSetStart');
-            }
+            this.emit('bufferSetStart');
         });
 
-        this.screen.key(['c', 'C'], () => {
-            if (!this.ctrlPressed) {
-                this.emit('bufferClearSelection');
-            }
+        this.screen.key(['S-enter', 'S-return'], () => {
+            this.emit('bufferSetEnd');
         });
 
-        this.screen.key(['a', 'A'], () => {
-            if (!this.ctrlPressed) {
-                this.emit('bufferSelectAll');
-            }
+        this.screen.key(['c'], () => {
+            this.emit('bufferClearSelection');
         });
 
-        // Export controls
-        this.screen.key(['s', 'S'], () => {
-            if (!this.ctrlPressed && !this.shiftPressed) {
-                this.emit('exportSelection');
-            }
+        this.screen.key(['a'], () => {
+            this.emit('bufferSelectAll');
         });
 
         this.screen.key(['p', 'P'], () => {

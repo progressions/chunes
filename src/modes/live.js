@@ -18,6 +18,9 @@ class LiveMode {
         this.deactivate();
         this.isActive = true;
 
+        // IMPORTANT: Set up parameter change handler
+        this.app.controlHandler.on('parameterChange', this.handleParameterChange.bind(this));
+
         // Set up loop save/load handlers
         this.app.controlHandler.on('saveLoop', this.handleSaveLoop.bind(this));
         this.app.controlHandler.on('loadLoop', this.handleLoadLoop.bind(this));
@@ -98,8 +101,19 @@ class LiveMode {
 
         if (newValue !== currentValue && newValue !== undefined) {
             this.app.updateParameter(param, newValue);
+
+            // Format the message based on parameter type
+            let displayValue = newValue;
+            if (param === 'tempo') {
+                displayValue = `${newValue} BPM`;
+            } else if (param === 'loopLength') {
+                displayValue = `${newValue} bars`;
+            } else if (param === 'swing') {
+                displayValue = newValue ? 'ON' : 'OFF';
+            }
+
             this.app.uiManager.showMessage(
-                `${param}: ${newValue}`,
+                `${param}: ${displayValue}`,
                 'info'
             );
         }

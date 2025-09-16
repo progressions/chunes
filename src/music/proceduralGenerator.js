@@ -12,6 +12,11 @@ class ProceduralGenerator {
         this.currentStep = 0;
         this.stepTime = (60 / this.tempo) / 4; // Time per 16th note
         this.lastStepTime = Date.now() / 1000;
+        this.swing = false;
+        this.swingAmount = 0.67; // 67/33 swing ratio
+        this.timeSignature = '4/4';
+        this.beatsPerMeasure = 4;
+        this.beatUnit = 4;
 
         // Musical scales
         this.scales = {
@@ -95,16 +100,32 @@ class ProceduralGenerator {
         const now = Date.now() / 1000;
         const elapsed = now - this.lastStepTime;
 
-        if (elapsed >= this.stepTime) {
-            this.lastStepTime = now;
+        // Apply swing timing if enabled
+        let currentStepTime = this.stepTime;
+        if (this.swing && this.currentStep % 2 === 1) {
+            // Every other 16th note is delayed for swing feel
+            currentStepTime = this.stepTime * (2 - this.swingAmount);
+        } else if (this.swing && this.currentStep % 2 === 0) {
+            currentStepTime = this.stepTime * this.swingAmount;
+        }
+
+        if (elapsed >= currentStepTime) {
+            // Move forward by exact step time to prevent drift
+            // But if we've fallen too far behind (>2 steps), reset to current time
+            if (elapsed > currentStepTime * 2) {
+                this.lastStepTime = now;
+            } else {
+                this.lastStepTime += currentStepTime;
+            }
 
             const events = this.generateEvents();
 
             // Advance step
-            this.currentStep = (this.currentStep + 1) % (this.loopLength * 16);
+            const stepsPerMeasure = this.beatsPerMeasure * 4; // 16th notes per measure
+            this.currentStep = (this.currentStep + 1) % (this.loopLength * stepsPerMeasure);
 
-            // Update chord every measure (16 steps)
-            if (this.currentStep % 16 === 0) {
+            // Update chord every measure
+            if (this.currentStep % stepsPerMeasure === 0) {
                 this.currentChordIndex = (this.currentChordIndex + 1) %
                     this.genrePatterns[this.genre].chordProgression.length;
             }
@@ -268,11 +289,28 @@ class ProceduralGenerator {
     }
 
     updateTempo() {
+        // Calculate new step time (time per 16th note)
         this.stepTime = (60 / this.tempo) / 4;
+        // Don't reset lastStepTime - let the next update handle timing naturally
     }
 
     setLoopLength(measures) {
         this.loopLength = measures;
+    }
+
+    setSwing(enabled) {
+        this.swing = enabled;
+    }
+
+    setTimeSignature(signature) {
+        this.timeSignature = signature;
+        if (signature === '3/4') {
+            this.beatsPerMeasure = 3;
+            this.beatUnit = 4;
+        } else if (signature === '4/4') {
+            this.beatsPerMeasure = 4;
+            this.beatUnit = 4;
+        }
     }
 
     reset() {
@@ -290,7 +328,9 @@ class ProceduralGenerator {
             scale: this.scale,
             tempo: this.tempo,
             loopLength: this.loopLength,
-            currentStep: this.currentStep
+            currentStep: this.currentStep,
+            swing: this.swing,
+            timeSignature: this.timeSignature
         };
     }
 
@@ -302,6 +342,8 @@ class ProceduralGenerator {
             this.tempo = state.tempo || 120;
             this.loopLength = state.loopLength || 8;
             this.currentStep = state.currentStep || 0;
+            this.swing = state.swing || false;
+            this.timeSignature = state.timeSignature || '4/4';
             this.updateTempo();
             this.regeneratePatterns();
         }

@@ -1,14 +1,19 @@
-// Better audio player with proper buffering and mixing
-
+// Improved audio player with ring buffer to prevent underflow
 const Speaker = require('speaker');
 const { SquareWaveOscillator, TriangleWaveOscillator, NoiseOscillator } = require('./oscillators');
 
-class BetterAudioPlayer {
+class ImprovedAudioPlayer {
     constructor() {
         this.sampleRate = 44100;
         this.channels = 2;
         this.bitDepth = 16;
-        this.frameSize = 2048; // Larger buffer for smoother playback
+        this.frameSize = 4096; // Larger frame for stability
+
+        // Ring buffer for audio data
+        this.bufferSize = this.frameSize * 8; // 8 frames of buffer
+        this.audioBuffer = new Float32Array(this.bufferSize);
+        this.writePosition = 0;
+        this.readPosition = 0;
 
         this.speaker = null;
         this.isPlaying = false;
@@ -24,19 +29,27 @@ class BetterAudioPlayer {
 
         // Channel states
         this.channelStates = {
-            pulse1: { freq: 0, volume: 0.25, active: false },
-            pulse2: { freq: 0, volume: 0.25, active: false },
-            triangle: { freq: 0, volume: 0.25, active: false },
+            pulse1: { freq: 0, volume: 0.25, active: false, phase: 0 },
+            pulse2: { freq: 0, volume: 0.25, active: false, phase: 0 },
+            triangle: { freq: 0, volume: 0.25, active: false, phase: 0 },
             noise: { volume: 0.15, active: false }
         };
+
+        // Generation state
+        this.generationInterval = null;
     }
 
     async initialize() {
         try {
+            // Pre-fill buffer with silence
+            this.prefillBuffer();
+
             this.speaker = new Speaker({
                 channels: this.channels,
                 bitDepth: this.bitDepth,
-                sampleRate: this.sampleRate
+                sampleRate: this.sampleRate,
+                lowWaterMark: 256,
+                highWaterMark: 4096
             });
 
             this.speaker.on('error', (err) => {
@@ -44,7 +57,13 @@ class BetterAudioPlayer {
             });
 
             this.isPlaying = true;
-            this.startAudioLoop();
+
+            // Start audio generation loop
+            this.startGenerationLoop();
+
+            // Start playback loop
+            this.startPlaybackLoop();
+
             return true;
 
         } catch (error) {
@@ -53,82 +72,124 @@ class BetterAudioPlayer {
         }
     }
 
-    startAudioLoop() {
-        const generateAndPlay = () => {
-            if (!this.isPlaying || !this.speaker) return;
-
-            // Generate mixed audio
-            const buffer = this.generateMixedAudio();
-
-            // Write to speaker
-            this.speaker.write(buffer, () => {
-                // Schedule next buffer immediately to avoid underflow
-                if (this.isPlaying) {
-                    setImmediate(generateAndPlay);
-                }
-            });
-        };
-
-        // Start the loop with multiple initial buffers to prevent underflow
-        generateAndPlay();
-        generateAndPlay();  // Queue up a second buffer immediately
+    prefillBuffer() {
+        // Fill entire buffer with silence initially
+        for (let i = 0; i < this.bufferSize; i++) {
+            this.audioBuffer[i] = 0;
+        }
+        this.writePosition = this.bufferSize / 2; // Start halfway through
     }
 
-    generateMixedAudio() {
+    startGenerationLoop() {
+        // Generate audio continuously at a high rate
+        this.generationInterval = setInterval(() => {
+            this.generateAndBuffer();
+        }, 5); // Generate every 5ms
+    }
+
+    startPlaybackLoop() {
+        const playNextChunk = () => {
+            if (!this.isPlaying || !this.speaker) return;
+
+            const buffer = this.consumeBuffer();
+
+            if (buffer) {
+                this.speaker.write(buffer, () => {
+                    if (this.isPlaying) {
+                        setImmediate(playNextChunk);
+                    }
+                });
+            } else {
+                // If no buffer, try again quickly
+                setTimeout(playNextChunk, 1);
+            }
+        };
+
+        playNextChunk();
+    }
+
+    generateAndBuffer() {
+        // Calculate how much space is available in the buffer
+        let available = this.readPosition - this.writePosition;
+        if (available <= 0) available += this.bufferSize;
+
+        // Don't overfill - leave some space
+        if (available < this.frameSize * 2) return;
+
+        // Generate a chunk of audio
+        const samples = this.generateMixedAudio(this.frameSize);
+
+        // Write to ring buffer
+        for (let i = 0; i < samples.length; i++) {
+            this.audioBuffer[this.writePosition] = samples[i];
+            this.writePosition = (this.writePosition + 1) % this.bufferSize;
+        }
+    }
+
+    consumeBuffer() {
+        // Calculate how much data is available
+        let available = this.writePosition - this.readPosition;
+        if (available < 0) available += this.bufferSize;
+
+        // Need at least one frame
+        if (available < this.frameSize) {
+            // Generate silence to prevent underflow
+            const silence = new Float32Array(this.frameSize);
+            return this.floatToPCM(silence);
+        }
+
+        // Read from ring buffer
         const samples = new Float32Array(this.frameSize);
-        let hasAudio = false;
+        for (let i = 0; i < this.frameSize; i++) {
+            samples[i] = this.audioBuffer[this.readPosition];
+            this.readPosition = (this.readPosition + 1) % this.bufferSize;
+        }
+
+        return this.floatToPCM(samples);
+    }
+
+    generateMixedAudio(numSamples = this.frameSize) {
+        const samples = new Float32Array(numSamples);
 
         // Generate each channel
         if (this.channelStates.pulse1.active && this.channelStates.pulse1.freq > 0) {
             const pulse1 = this.oscillators.pulse1.generate(
                 this.channelStates.pulse1.freq,
-                this.frameSize
+                numSamples
             );
-            for (let i = 0; i < this.frameSize; i++) {
+            for (let i = 0; i < numSamples; i++) {
                 samples[i] += pulse1[i] * this.channelStates.pulse1.volume;
             }
-            hasAudio = true;
         }
 
         if (this.channelStates.pulse2.active && this.channelStates.pulse2.freq > 0) {
             const pulse2 = this.oscillators.pulse2.generate(
                 this.channelStates.pulse2.freq,
-                this.frameSize
+                numSamples
             );
-            for (let i = 0; i < this.frameSize; i++) {
+            for (let i = 0; i < numSamples; i++) {
                 samples[i] += pulse2[i] * this.channelStates.pulse2.volume;
             }
-            hasAudio = true;
         }
 
         if (this.channelStates.triangle.active && this.channelStates.triangle.freq > 0) {
             const triangle = this.oscillators.triangle.generate(
                 this.channelStates.triangle.freq,
-                this.frameSize
+                numSamples
             );
-            for (let i = 0; i < this.frameSize; i++) {
+            for (let i = 0; i < numSamples; i++) {
                 samples[i] += triangle[i] * this.channelStates.triangle.volume;
             }
-            hasAudio = true;
         }
 
         if (this.channelStates.noise.active) {
-            const noise = this.oscillators.noise.generate(this.frameSize);
-            for (let i = 0; i < this.frameSize; i++) {
+            const noise = this.oscillators.noise.generate(numSamples);
+            for (let i = 0; i < numSamples; i++) {
                 samples[i] += noise[i] * this.channelStates.noise.volume;
             }
-            hasAudio = true;
         }
 
-        // If no active channels, generate a tiny amount of silence to keep stream alive
-        if (!hasAudio) {
-            for (let i = 0; i < this.frameSize; i++) {
-                samples[i] = 0;
-            }
-        }
-
-        // Convert to PCM
-        return this.floatToPCM(samples);
+        return samples;
     }
 
     floatToPCM(floatSamples) {
@@ -181,6 +242,11 @@ class BetterAudioPlayer {
     stop() {
         this.isPlaying = false;
 
+        if (this.generationInterval) {
+            clearInterval(this.generationInterval);
+            this.generationInterval = null;
+        }
+
         if (this.speaker) {
             this.speaker.end();
             this.speaker = null;
@@ -189,5 +255,5 @@ class BetterAudioPlayer {
 }
 
 module.exports = {
-    BetterAudioPlayer
+    ImprovedAudioPlayer
 };

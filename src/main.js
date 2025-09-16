@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const blessed = require('blessed');
-const { BetterAudioPlayer } = require('./audio/betterPlayer');
+const { ImprovedAudioPlayer } = require('./audio/improvedPlayer');
 const { ProceduralGenerator } = require('./music/proceduralGenerator');
 const { UIManager } = require('./ui/display');
 const { ControlHandler } = require('./ui/controls');
@@ -17,7 +17,7 @@ class ChiptuneGenerator {
         this.isRunning = false;
 
         // Initialize all subsystems
-        this.audioPlayer = new BetterAudioPlayer();
+        this.audioPlayer = new ImprovedAudioPlayer();
         this.musicGenerator = new ProceduralGenerator();
         this.bufferManager = new BufferManager();
         this.sessionManager = new SessionManager();
@@ -62,12 +62,20 @@ class ChiptuneGenerator {
             await this.audioPlayer.initialize();
             console.log('Audio initialized');
 
+            // Initialize music generator with default parameters
+            this.musicGenerator.setGenre(this.parameters.genre);
+            this.musicGenerator.setKey(this.parameters.key);
+            this.musicGenerator.setScale(this.parameters.scale);
+            this.musicGenerator.setTempo(this.parameters.tempo);
+            this.musicGenerator.setLoopLength(this.parameters.loopLength);
+
             // Start buffer recording
             this.bufferManager.startRecording();
 
             // Initialize UI
             this.uiManager.initialize();
             this.uiManager.setMode('live');
+            this.uiManager.updateParameters(this.parameters);
 
             // Start live mode
             this.liveMode.activate();
@@ -118,7 +126,8 @@ class ChiptuneGenerator {
         }
 
         // Schedule next iteration for music timing
-        setTimeout(() => this.mainLoop(), 20);
+        // Use a shorter interval for better timing accuracy
+        setTimeout(() => this.mainLoop(), 10);
     }
 
     setupControls() {
@@ -193,8 +202,17 @@ class ChiptuneGenerator {
                 case 'loopLength':
                     this.musicGenerator.setLoopLength(value);
                     break;
+                case 'swing':
+                    this.musicGenerator.setSwing(value);
+                    break;
+                case 'timeSignature':
+                    this.musicGenerator.setTimeSignature(value);
+                    break;
             }
         }
+
+        // Force immediate screen render for responsive feedback
+        this.screen.render();
     }
 
 

@@ -9,7 +9,15 @@ class UIManager {
         this.screen = screen;
         this.mode = 'live';
         this.boxes = {};
-        this.parameters = {};
+        this.parameters = {
+            genre: 'rock',
+            key: 'C',
+            scale: 'major',
+            tempo: 120,
+            timeSignature: '4/4',
+            loopLength: 8,
+            swing: false
+        };
         this.bufferDuration = 0;
         this.theme = {
             pulse1: '#7dd3fc',
@@ -48,12 +56,23 @@ class UIManager {
         // Create control hints
         this.createControlHints();
 
+        // Update displays with initial values
+        this.updateParameterDisplay();
+        this.updateControlHints();
+
         this.screen.render();
     }
 
     createHeader() {
-        const headerGradient = gradient(['#ec4899', '#8b5cf6', '#3b82f6']);
-        const titleText = headerGradient(' ♪ CHIPTUNE GENERATOR ♪ ');
+        // Create gradient text separately
+        let titleText = '♪ CHIPTUNE GENERATOR ♪';
+        try {
+            const headerGradient = gradient(['#ec4899', '#8b5cf6', '#3b82f6']);
+            titleText = headerGradient(titleText);
+        } catch (e) {
+            // Fallback if gradient fails
+            titleText = '{bold}{cyan-fg}' + titleText + '{/cyan-fg}{/bold}';
+        }
 
         this.boxes.header = blessed.box({
             parent: this.container,
@@ -64,8 +83,7 @@ class UIManager {
             content: `{center}${titleText}{/center}`,
             tags: true,
             style: {
-                fg: 'white',
-                bold: true
+                fg: 'white'
             },
             border: {
                 type: 'line',
@@ -80,7 +98,7 @@ class UIManager {
             top: 3,
             left: 0,
             width: '100%',
-            height: 3,
+            height: 4,
             tags: true,
             style: {
                 fg: this.theme.foreground
@@ -88,16 +106,18 @@ class UIManager {
             border: {
                 type: 'line',
                 fg: '#475569'
-            }
+            },
+            label: ' Parameters '
         });
 
-        this.updateParameterDisplay();
+        // Set initial content
+        this.boxes.parameters.setContent('Initializing...');
     }
 
     createVisualization() {
         this.boxes.visualization = blessed.box({
             parent: this.container,
-            top: 6,
+            top: 7,
             left: 0,
             width: '100%',
             height: 10,
@@ -153,7 +173,7 @@ class UIManager {
             bottom: 0,
             left: 0,
             width: '100%',
-            height: 5,
+            height: 6,  // Increased to make room for status line
             tags: true,
             style: {
                 fg: this.theme.foreground
@@ -163,6 +183,20 @@ class UIManager {
                 fg: '#475569'
             },
             label: ' Controls '
+        });
+
+        // Add a status line box
+        this.boxes.statusLine = blessed.box({
+            parent: this.boxes.controls,
+            bottom: 0,
+            left: 1,
+            width: '98%',
+            height: 1,
+            tags: true,
+            content: '',
+            style: {
+                fg: this.theme.highlight
+            }
         });
 
         this.updateControlHints();
@@ -176,15 +210,11 @@ class UIManager {
 
         const bufferText = this.formatDuration(this.bufferDuration);
 
-        const content = [
-            `${modeText} {gray-fg}[Buffer: ${bufferText}]{/gray-fg}`,
-            `Genre: {${this.theme.highlight}-fg}${params.genre || 'rock'}{/} | ` +
-            `Key: {${this.theme.highlight}-fg}${params.key || 'C'} ${params.scale || 'major'}{/} | ` +
-            `Time: {${this.theme.highlight}-fg}${params.timeSignature || '4/4'}{/} | ` +
-            `Tempo: {${this.theme.highlight}-fg}${params.tempo || 120} BPM{/} | ` +
-            `Loop: {${this.theme.highlight}-fg}${params.loopLength || 8} bars{/} | ` +
-            `Swing: {${this.theme.highlight}-fg}${params.swing ? 'ON' : 'OFF'}{/}`
-        ].join('\n');
+        // Simpler format without complex colors
+        const line1 = `${modeText} [Buffer: ${bufferText}]`;
+        const line2 = `Genre: {yellow-fg}${params.genre || 'rock'}{/} | Key: {yellow-fg}${params.key || 'C'} ${params.scale || 'major'}{/} | Tempo: {yellow-fg}${params.tempo || 120} BPM{/} | Loop: {yellow-fg}${params.loopLength || 8} bars{/}`;
+
+        const content = [line1, line2].join('\n');
 
         if (this.boxes.parameters) {
             this.boxes.parameters.setContent(content);
@@ -302,39 +332,30 @@ class UIManager {
 
     showMessage(message, type = 'info') {
         const colors = {
-            info: 'blue',
-            success: 'green',
-            warning: 'yellow',
-            error: 'red'
+            info: '{cyan-fg}',
+            success: '{green-fg}',
+            warning: '{yellow-fg}',
+            error: '{red-fg}'
         };
 
-        const messageBox = blessed.message({
-            parent: this.screen,
-            top: 'center',
-            left: 'center',
-            width: '50%',
-            height: 'shrink',
-            style: {
-                fg: colors[type] || 'white',
-                bg: this.theme.background,
-                border: {
-                    fg: colors[type] || 'white'
-                }
-            },
-            border: {
-                type: 'line'
-            },
-            label: ` ${type.toUpperCase()} `,
-            tags: true,
-            hidden: false
-        });
+        const colorTag = colors[type] || '{white-fg}';
+        const timestamp = new Date().toLocaleTimeString();
+        const formattedMessage = `${colorTag}[${timestamp}] ${message}{/}`;
 
-        messageBox.display(message, 2, () => {
-            messageBox.destroy();
+        // Update status line instead of showing popup
+        if (this.boxes.statusLine) {
+            this.boxes.statusLine.setContent(formattedMessage);
             this.screen.render();
-        });
 
-        this.screen.render();
+            // Clear message after 3 seconds
+            clearTimeout(this.statusTimeout);
+            this.statusTimeout = setTimeout(() => {
+                if (this.boxes.statusLine) {
+                    this.boxes.statusLine.setContent('');
+                    this.screen.render();
+                }
+            }, 3000);
+        }
     }
 
     destroy() {
