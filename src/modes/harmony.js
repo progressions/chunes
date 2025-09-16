@@ -424,6 +424,9 @@ class HarmonyMode {
             const totalSteps = this.app.parameters.loopLength * 16;
             this.currentStep = (this.currentStep + 1) % totalSteps;
 
+            // Update display to show current playhead position
+            this.updateDisplay();
+
             return events;
         }
 
