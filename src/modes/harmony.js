@@ -52,14 +52,14 @@ class HarmonyMode {
     createInitialPattern(rootFreq, totalSteps, noteInterval) {
         const pattern = new Array(totalSteps).fill(null);
 
-        // Create a continuous drone pattern - every step has the root note
-        // This matches the spec: "Each channel starts with root note as monochromatic pulse"
-        for (let i = 0; i < totalSteps; i++) {
+        // Create a sparse initial pattern so individual notes are visible
+        // Place root notes at regular intervals (every 4 or 8 steps)
+        for (let i = 0; i < totalSteps; i += noteInterval) {
             pattern[i] = {
                 frequency: rootFreq,
                 note: this.app.parameters.key + '4',
                 velocity: 70,
-                duration: 0.25 // Short duration for each step to create a pulsing effect
+                duration: 0.5 // Half beat duration for clear notes
             };
         }
 

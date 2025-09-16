@@ -447,20 +447,22 @@ class EnhancedUIManager {
                 if (pattern && pattern[stepIndex]) {
                     const note = pattern[stepIndex];
                     if (channelId === 'noise' && note.trigger) {
-                        // Drum hits
-                        char = note.type === 'kick' ? '█' : '▓';
+                        // Drum hits - use distinct symbols
+                        char = note.type === 'kick' ? '●' : '○';
                         color = '#e17055'; // Coral for drums
                     } else if (note.frequency) {
-                        // Musical notes - use different characters for different octaves
+                        // Musical notes - use dots/symbols that show clearly
                         const noteName = note.note || '';
-                        if (noteName.includes('2')) char = '▁';
-                        else if (noteName.includes('3')) char = '▃';
-                        else if (noteName.includes('4')) char = '▅';
-                        else if (noteName.includes('5')) char = '▇';
-                        else if (noteName.includes('6')) char = '█';
-                        else char = '▪';
 
-                        // Color based on note name
+                        // Use distinct symbols for each octave
+                        if (noteName.includes('2')) char = '·';
+                        else if (noteName.includes('3')) char = '•';
+                        else if (noteName.includes('4')) char = '●';
+                        else if (noteName.includes('5')) char = '◆';
+                        else if (noteName.includes('6')) char = '▲';
+                        else char = '■';
+
+                        // Color based on note name for visual distinction
                         if (noteName.includes('C')) color = '#ff6b9d';
                         else if (noteName.includes('D')) color = '#c44569';
                         else if (noteName.includes('E')) color = '#0abde3';
@@ -468,6 +470,11 @@ class EnhancedUIManager {
                         else if (noteName.includes('G')) color = '#fdcb6e';
                         else if (noteName.includes('A')) color = '#a29bfe';
                         else if (noteName.includes('B')) color = '#fd79a8';
+
+                        // Sharp/flat notes get different shade
+                        if (noteName.includes('#') || noteName.includes('b')) {
+                            char = '◇'; // Diamond for accidentals
+                        }
                     }
                 }
 
