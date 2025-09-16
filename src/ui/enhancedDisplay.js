@@ -88,20 +88,13 @@ class EnhancedUIManager {
     }
 
     initialize() {
-        // Clear screen
-        this.screen.clearRegion(0, this.termSize.width, 0, this.termSize.height);
-
-        // Create main container with background
+        // Create main container
         this.container = blessed.box({
             parent: this.screen,
             top: 0,
             left: 0,
             width: '100%',
-            height: '100%',
-            style: {
-                fg: this.colorPalette.text,
-                bg: this.colorPalette.background
-            }
+            height: '100%'
         });
 
         // Build UI sections
@@ -111,10 +104,15 @@ class EnhancedUIManager {
         this.createStatusBar();
         this.createControlHints();
 
+        // Update displays with current values
+        this.updateParameterDisplay();
+        this.updateStatusDisplay();
+        this.updateControlHints();
+
         // Start animations
         this.startFlowAnimation();
-        this.playStartupAnimation();
 
+        // Force initial render
         this.screen.render();
     }
 
@@ -127,50 +125,17 @@ class EnhancedUIManager {
             width: '100%',
             height: 3,
             border: {
-                type: 'line',
-                fg: this.colorPalette.border
+                type: 'line'
             },
-            style: {
-                border: {
-                    fg: this.colorPalette.border
-                }
-            }
-        });
-
-        // Title with gradient effect
-        const titleText = 'CHIPTUNE GENERATOR';
-        let titleGradient;
-        try {
-            const headerGradient = gradient(['#ff6b9d', '#8e44ad', '#0abde3']);
-            titleGradient = headerGradient(titleText);
-        } catch (e) {
-            titleGradient = chalk.hex(this.colorPalette.title).bold(titleText);
-        }
-
-        // Title line
-        this.boxes.headerTitle = blessed.text({
-            parent: this.boxes.header,
-            top: 0,
-            left: 'center',
-            content: titleGradient,
             tags: true,
-            style: {
-                fg: this.colorPalette.title,
-                bold: true
-            }
+            align: 'center'
         });
 
-        // Status line with animated emoji
-        this.boxes.headerStatus = blessed.text({
-            parent: this.boxes.header,
-            top: 1,
-            left: 'center',
-            content: '🎵 Live Session Active 🎵',
-            tags: true,
-            style: {
-                fg: this.colorPalette.subtitle
-            }
-        });
+        // Set header content directly
+        this.boxes.header.setContent(
+            '{center}{bold}{yellow-fg}CHIPTUNE GENERATOR{/yellow-fg}{/bold}{/center}\n' +
+            '{center}🎵 Live Session Active 🎵{/center}'
+        );
     }
 
     createParameterDisplay() {
@@ -190,7 +155,9 @@ class EnhancedUIManager {
                     fg: this.colorPalette.subtitle,
                     bold: true
                 }
-            }
+            },
+            tags: true,
+            content: 'Loading parameters...'
         });
 
         this.updateParameterDisplay();
@@ -240,18 +207,10 @@ class EnhancedUIManager {
             height: 3,
             label: ' STATUS ',
             border: {
-                type: 'line',
-                fg: this.colorPalette.border
+                type: 'line'
             },
-            style: {
-                label: {
-                    fg: this.colorPalette.subtitle,
-                    bold: true
-                }
-            }
+            tags: true
         });
-
-        this.updateStatusDisplay();
     }
 
     createControlHints() {
@@ -263,36 +222,22 @@ class EnhancedUIManager {
             height: 4,
             label: ' CONTROLS ',
             border: {
-                type: 'line',
-                fg: this.colorPalette.border
+                type: 'line'
             },
-            style: {
-                label: {
-                    fg: this.colorPalette.subtitle,
-                    bold: true
-                }
-            }
+            tags: true
         });
-
-        this.updateControlHints();
     }
 
     updateParameterDisplay() {
         const params = this.parameters;
 
-        // Format parameters with colors
-        const genreText = this.formatParam('Genre', params.genre);
-        const keyText = this.formatParam('Key', `${params.key} ${params.scale}`);
-        const tempoText = this.formatParam('Tempo', `${params.tempo} BPM`);
-        const timeText = this.formatParam('Time', params.timeSignature);
-        const loopText = this.formatParam('Loop', `${params.loopLength} bars`);
-        const swingText = this.formatParam('Swing', params.swing ? 'ON' : 'OFF');
-
-        const line1 = `${genreText}  ${keyText}  ${tempoText}  ${timeText}`;
-        const line2 = `${loopText}  ${swingText}  Mode: ${chalk.hex(this.colorPalette.paramActive)('LIVE')}`;
+        // Simple format without complex colors for now
+        const line1 = ` {cyan-fg}Genre:{/} {bold}${params.genre}{/bold}  {cyan-fg}Key:{/} {bold}${params.key} ${params.scale}{/bold}  {cyan-fg}Tempo:{/} {bold}${params.tempo} BPM{/bold}  {cyan-fg}Time:{/} {bold}${params.timeSignature}{/bold}`;
+        const line2 = ` {cyan-fg}Loop:{/} {bold}${params.loopLength} bars{/bold}  {cyan-fg}Swing:{/} {bold}${params.swing ? 'ON' : 'OFF'}{/bold}  {cyan-fg}Mode:{/} {green-fg}{bold}LIVE{/bold}{/green-fg}`;
 
         if (this.boxes.parameters) {
-            this.boxes.parameters.setContent(`\n ${line1}\n ${line2}`);
+            this.boxes.parameters.setContent(`\n${line1}\n${line2}`);
+            this.screen.render();
         }
     }
 
@@ -310,48 +255,18 @@ class EnhancedUIManager {
     }
 
     updateStatusDisplay() {
-        const bufferText = chalk.hex(this.colorPalette.recording)(
-            `Buffer: ${this.formatDuration(this.bufferDuration)} recording...`
-        );
-        const sessionText = chalk.hex(this.colorPalette.text)(
-            `Session: ${this.sessionTime}`
-        );
+        const content = `\n {green-fg}Buffer:{/} ${this.formatDuration(this.bufferDuration)} recording...    {white-fg}Session:{/} ${this.sessionTime}`;
 
         if (this.boxes.status) {
-            this.boxes.status.setContent(`\n ${bufferText}    ${sessionText}`);
+            this.boxes.status.setContent(content);
         }
     }
 
     updateControlHints() {
-        const keyStyle = (key) => {
-            const bracket = chalk.hex(this.colorPalette.keyBracket)('[');
-            const keyLetter = chalk.hex(this.colorPalette.keyHighlight).bold(key);
-            const closeBracket = chalk.hex(this.colorPalette.keyBracket)(']');
-            return `${bracket}${keyLetter}${closeBracket}`;
-        };
-
-        const descStyle = (desc) => chalk.hex(this.colorPalette.keyDesc)(desc);
-
         let content = '';
         if (this.mode === 'live') {
-            const line1 = [
-                `${keyStyle('T')} ${descStyle('Tempo')}`,
-                `${keyStyle('G')} ${descStyle('Genre')}`,
-                `${keyStyle('K')} ${descStyle('Key')}`,
-                `${keyStyle('S')} ${descStyle('Scale')}`,
-                `${keyStyle('L')} ${descStyle('Loop')}`,
-                `${keyStyle('W')} ${descStyle('Swing')}`
-            ].join('  ');
-
-            const line2 = [
-                `${keyStyle('3')}${keyStyle('4')} ${descStyle('Time')}`,
-                `${keyStyle('B')} ${descStyle('Buffer')}`,
-                `${keyStyle('Ctrl+S')} ${descStyle('Save')}`,
-                `${keyStyle('Ctrl+L')} ${descStyle('Load')}`,
-                `${keyStyle('Q')} ${descStyle('Quit')}`
-            ].join('  ');
-
-            content = ` ${line1}\n ${line2}`;
+            content = ` {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo  {magenta-fg}[{/magenta-fg}{green-fg}G{/green-fg}{magenta-fg}]{/magenta-fg} Genre  {magenta-fg}[{/magenta-fg}{green-fg}K{/green-fg}{magenta-fg}]{/magenta-fg} Key  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Scale  {magenta-fg}[{/magenta-fg}{green-fg}L{/green-fg}{magenta-fg}]{/magenta-fg} Loop  {magenta-fg}[{/magenta-fg}{green-fg}W{/green-fg}{magenta-fg}]{/magenta-fg} Swing\n` +
+                  ` {magenta-fg}[{/magenta-fg}{green-fg}3{/green-fg}{magenta-fg}]{/magenta-fg}{magenta-fg}[{/magenta-fg}{green-fg}4{/green-fg}{magenta-fg}]{/magenta-fg} Time  {magenta-fg}[{/magenta-fg}{green-fg}B{/green-fg}{magenta-fg}]{/magenta-fg} Buffer  {magenta-fg}[{/magenta-fg}{green-fg}Ctrl+S{/green-fg}{magenta-fg}]{/magenta-fg} Save  {magenta-fg}[{/magenta-fg}{green-fg}Ctrl+L{/green-fg}{magenta-fg}]{/magenta-fg} Load  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
         }
 
         if (this.boxes.controls) {

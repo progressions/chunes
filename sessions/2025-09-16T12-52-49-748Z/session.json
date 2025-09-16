@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-09-16T12:52:49.748Z",
+  "parameters": {
+    "genre": "bossa",
+    "key": "D#",
+    "scale": "minor",
+    "timeSignature": "4/4",
+    "tempo": 110,
+    "swing": false,
+    "loopLength": 8
+  },
+  "musicState": {
+    "genre": "bossa",
+    "key": "D#",
+    "scale": "minor",
+    "tempo": 110,
+    "loopLength": 8,
+    "currentStep": 20,
+    "swing": false,
+    "timeSignature": "4/4"
+  },
+  "bufferStats": {
+    "duration": 0,
+    "dataPoints": 0,
+    "timelineEvents": 0,
+    "memoryUsage": "0.00"
+  }
+}
