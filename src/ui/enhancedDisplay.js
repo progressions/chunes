@@ -241,7 +241,14 @@ class EnhancedUIManager {
         }
 
         const line1 = `  {#fab1a0-fg}Genre:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.genre}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Key:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.key} ${params.scale}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Tempo:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.tempo} BPM{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Time:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.timeSignature}{/#74b9ff-fg}{/bold}`;
-        const line2 = `  {#fab1a0-fg}Loop:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.loopLength} bars{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Swing:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.swing ? 'ON' : 'OFF'}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Mode:{/#fab1a0-fg} {bold}{#00b894-fg}${modeDisplay}{/#00b894-fg}{/bold}`;
+        let line2 = `  {#fab1a0-fg}Loop:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.loopLength} bars{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Swing:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.swing ? 'ON' : 'OFF'}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Mode:{/#fab1a0-fg} {bold}{#00b894-fg}${modeDisplay}{/#00b894-fg}{/bold}`;
+
+        // Add selected channel info in H Mode
+        if (this.mode === 'harmony' && this.harmonySelectedChannel) {
+            const channelTypes = ['Lead', 'Harmony', 'Bass', 'Drums'];
+            const selectedType = channelTypes[this.harmonySelectedChannel - 1];
+            line2 += `  {#fab1a0-fg}Selected:{/#fab1a0-fg} {bold}{#ff6b9d-fg}Ch${this.harmonySelectedChannel} (${selectedType}){/#ff6b9d-fg}{/bold}`;
+        }
 
         if (this.boxes.parameters) {
             this.boxes.parameters.setContent(`\n${line1}\n${line2}\n`);
@@ -349,11 +356,17 @@ class EnhancedUIManager {
         const channelId = Object.keys(this.flowBuffers)[channelIndex];
 
         if (this.boxes[`channel${channelIndex + 1}`]) {
-            let content = `${chalk.hex(channelColors[channelIndex])(channelNames[channelIndex])} ${this.getFlowVisualization(channelIndex)}`;
+            let content = '';
+            const isSelected = this.mode === 'harmony' && this.harmonySelectedChannel === (channelIndex + 1);
 
-            // Add selection indicator in H Mode
-            if (this.mode === 'harmony' && this.harmonySelectedChannel === (channelIndex + 1)) {
+            // Apply background highlight for selected channel in H Mode
+            if (isSelected) {
+                // Dark blue background with mint green channel name
+                content = `${chalk.bgHex('#0f3460').hex('#00b894')(channelNames[channelIndex])} ${this.getFlowVisualization(channelIndex)}`;
                 content += ` ${chalk.hex('#ff6b9d')('←')}`;  // Hot pink arrow
+            } else {
+                // Normal display for unselected channels
+                content = `${chalk.hex(channelColors[channelIndex])(channelNames[channelIndex])} ${this.getFlowVisualization(channelIndex)}`;
             }
 
             this.boxes[`channel${channelIndex + 1}`].setContent(content);

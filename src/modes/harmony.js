@@ -46,13 +46,14 @@ class HarmonyMode {
     createInitialPattern(rootFreq, totalSteps, noteInterval) {
         const pattern = new Array(totalSteps).fill(null);
 
-        // Place root note at regular intervals
-        for (let i = 0; i < totalSteps; i += noteInterval) {
+        // Create a continuous drone pattern - every step has the root note
+        // This matches the spec: "Each channel starts with root note as monochromatic pulse"
+        for (let i = 0; i < totalSteps; i++) {
             pattern[i] = {
                 frequency: rootFreq,
                 note: this.app.parameters.key + '4',
                 velocity: 70,
-                duration: noteInterval === 4 ? 0.5 : 1 // Staccato: 0.5 beat for quarters, 1 beat for halves
+                duration: 0.25 // Short duration for each step to create a pulsing effect
             };
         }
 
@@ -86,12 +87,19 @@ class HarmonyMode {
     activate() {
         this.isActive = true;
 
+        // Store previous patterns if any (for persistence)
+        this.previousPatterns = this.patterns ? { ...this.patterns } : null;
+
         // Initialize patterns with current parameters
         this.initializePatterns();
 
         // Reset timing
         this.currentStep = 0;
         this.lastStepTime = Date.now() / 1000;
+
+        // Implement smooth transition (500ms fade as per spec)
+        this.transitionTime = 0.5; // 500ms
+        this.transitionStartTime = Date.now() / 1000;
 
         // Set up key handlers
         this.setupKeyHandlers();
@@ -104,8 +112,17 @@ class HarmonyMode {
     deactivate() {
         this.isActive = false;
 
+        // Store patterns for persistence
+        this.storedPatterns = { ...this.patterns };
+        this.storedSelectedChannel = this.selectedChannel;
+
         // Clean up key handlers
         this.cleanupKeyHandlers();
+
+        // Notify app that patterns should be preserved
+        if (this.app.preserveHarmonyPatterns) {
+            this.app.preserveHarmonyPatterns(this.storedPatterns);
+        }
     }
 
     setupKeyHandlers() {
@@ -181,18 +198,19 @@ class HarmonyMode {
     }
 
     addRandomNote() {
-        // Get current quantized position
-        const quantizedStep = this.getQuantizedStep();
+        // Add note at CURRENT position, not quantized - as per spec:
+        // "Note added at whatever beat position is currently playing"
+        const currentPosition = this.currentStep;
 
-        // Get random scale note
-        const randomNote = this.getRandomScaleNote();
+        // Get weighted random scale note
+        const randomNote = this.getWeightedScaleNote();
 
         // Add to selected channel pattern
         const channelId = this.channelMap[this.selectedChannel];
 
         if (channelId === 'noise') {
             // For noise channel, add drum hit
-            this.patterns[channelId][quantizedStep] = {
+            this.patterns[channelId][currentPosition] = {
                 trigger: true,
                 type: Math.random() > 0.5 ? 'kick' : 'snare',
                 duration: 0.2,
@@ -200,8 +218,8 @@ class HarmonyMode {
                 period: Math.random() > 0.5 ? 15 : 4
             };
         } else {
-            // For tonal channels, add note
-            this.patterns[channelId][quantizedStep] = {
+            // For tonal channels, replace the drone with a new note
+            this.patterns[channelId][currentPosition] = {
                 frequency: randomNote.frequency,
                 note: randomNote.name,
                 velocity: 60 + Math.random() * 30,
@@ -210,7 +228,7 @@ class HarmonyMode {
         }
 
         this.app.uiManager.showMessage(
-            `Added ${channelId === 'noise' ? 'drum' : randomNote.name} at step ${quantizedStep}`,
+            `Added ${channelId === 'noise' ? 'drum' : randomNote.name} at position ${currentPosition}`,
             'success'
         );
     }
@@ -220,6 +238,84 @@ class HarmonyMode {
         const nearestBeat = Math.round(this.currentStep / 4) * 4;
         const totalSteps = this.app.parameters.loopLength * 16;
         return nearestBeat % totalSteps;
+    }
+
+    getWeightedScaleNote() {
+        // Implement weighted note selection as per spec
+        const scales = {
+            major: [0, 2, 4, 5, 7, 9, 11],
+            minor: [0, 2, 3, 5, 7, 8, 10],
+            blues: [0, 3, 5, 6, 7, 10]
+        };
+
+        const scale = scales[this.app.parameters.scale] || scales.major;
+        const keyFrequencies = {
+            'C': 261.63,
+            'C#': 277.18,
+            'D': 293.66,
+            'D#': 311.13,
+            'E': 329.63,
+            'F': 349.23,
+            'F#': 369.99,
+            'G': 392.00,
+            'G#': 415.30,
+            'A': 440.00,
+            'A#': 466.16,
+            'B': 493.88
+        };
+
+        const baseFreq = keyFrequencies[this.app.parameters.key] || 261.63;
+
+        // Weighted selection based on harmonic function
+        const weightedIndices = [];
+
+        // Root (30% weight)
+        for (let i = 0; i < 30; i++) weightedIndices.push(0);
+
+        // Third (25% weight) - index 2 in scale
+        if (scale.length > 2) {
+            for (let i = 0; i < 25; i++) weightedIndices.push(2);
+        }
+
+        // Fifth (25% weight) - index 4 in scale
+        if (scale.length > 4) {
+            for (let i = 0; i < 25; i++) weightedIndices.push(4);
+        }
+
+        // Seventh (15% weight) - index 6 in scale
+        if (scale.length > 6) {
+            for (let i = 0; i < 15; i++) weightedIndices.push(6);
+        }
+
+        // Other scale tones (5% weight each)
+        for (let i = 1; i < scale.length; i++) {
+            if (i !== 2 && i !== 4 && i !== 6) {
+                for (let j = 0; j < 5; j++) weightedIndices.push(i);
+            }
+        }
+
+        // Select from weighted indices
+        const selectedIndex = weightedIndices[Math.floor(Math.random() * weightedIndices.length)];
+        const semitoneOffset = scale[selectedIndex];
+
+        // Random octave selection
+        const octaveOffset = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+
+        // Calculate frequency
+        const totalSemitones = semitoneOffset + (octaveOffset * 12);
+        const frequency = baseFreq * Math.pow(2, totalSemitones / 12);
+
+        // Generate note name
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const keyIndex = noteNames.indexOf(this.app.parameters.key);
+        const noteName = noteNames[(keyIndex + semitoneOffset) % 12];
+        const octave = 4 + octaveOffset;
+
+        return {
+            frequency: frequency,
+            name: noteName + octave,
+            semitones: totalSemitones
+        };
     }
 
     getRandomScaleNote() {
@@ -308,6 +404,16 @@ class HarmonyMode {
         // Calculate step time for note durations
         const stepTime = (60 / this.app.parameters.tempo) / 4;
 
+        // Apply transition fade if within transition period
+        let volumeMultiplier = 1.0;
+        if (this.transitionStartTime) {
+            const elapsed = (Date.now() / 1000) - this.transitionStartTime;
+            if (elapsed < this.transitionTime) {
+                // Fade in during transition
+                volumeMultiplier = elapsed / this.transitionTime;
+            }
+        }
+
         // Check each channel for notes at current step
         for (const [channel, pattern] of Object.entries(this.patterns)) {
             const note = pattern[this.currentStep];
@@ -319,7 +425,7 @@ class HarmonyMode {
                         trigger: true,
                         type: note.type,
                         duration: note.duration,
-                        velocity: note.velocity,
+                        velocity: note.velocity * volumeMultiplier,
                         period: note.period
                     };
                 } else if (channel !== 'noise' && note.frequency) {
@@ -329,7 +435,7 @@ class HarmonyMode {
                         frequency: note.frequency,
                         note: note.note,
                         duration: stepTime * 4 * note.duration, // Convert beats to seconds
-                        velocity: note.velocity
+                        velocity: note.velocity * volumeMultiplier
                     };
                 }
             }
@@ -360,6 +466,13 @@ class HarmonyMode {
         }
         if (state.selectedChannel) {
             this.selectedChannel = state.selectedChannel;
+        }
+    }
+
+    // Method to restore patterns when re-entering H Mode
+    restorePatterns(patterns) {
+        if (patterns) {
+            this.patterns = patterns;
         }
     }
 
