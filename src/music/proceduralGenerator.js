@@ -162,7 +162,7 @@ class ProceduralGenerator {
             events.pulse1 = {
                 note: `${this.key}4`,
                 frequency: note.frequency,
-                duration: this.stepTime * 2,  // Reduced from 4 to 2 for clearer rhythm
+                duration: this.stepTime * 0.8,  // Very short staccato notes
                 velocity: 60 + Math.random() * 20
             };
         }
@@ -173,7 +173,7 @@ class ProceduralGenerator {
             events.pulse2 = {
                 note: `${this.key}3`,
                 frequency: harmonyNote.frequency,
-                duration: this.stepTime * 1.5,  // Reduced from 3 to 1.5 for clearer rhythm
+                duration: this.stepTime * 0.6,  // Short staccato
                 velocity: 50 + Math.random() * 20
             };
         }
@@ -184,26 +184,36 @@ class ProceduralGenerator {
             events.triangle = {
                 note: `${this.key}2`,
                 frequency: bassNote.frequency,
-                duration: this.stepTime * 2,  // Reduced from 8 to 2 for MUCH clearer rhythm
+                duration: this.stepTime * 0.9,  // Short punchy bass
                 velocity: 70 + Math.random() * 20
             };
         }
 
-        // Drums (noise)
-        if (this.forceFirstNote || this.drumKickPattern[stepInPattern]) {
+        // Drums (noise) - make drums more prominent for rhythm
+        // Add a metronome-like tick on every beat (every 4 steps)
+        if (stepInPattern % 4 === 0) {
+            // Strong beat on downbeats
             events.noise = {
                 trigger: true,
                 type: 'kick',
-                duration: this.stepTime * 0.5,  // Short kick for punch
-                velocity: 80 + Math.random() * 10,
+                duration: this.stepTime * 0.2,  // Very short for clear rhythm
+                velocity: 95,  // Consistent loud volume
+                period: 15
+            };
+        } else if (this.drumKickPattern[stepInPattern]) {
+            events.noise = {
+                trigger: true,
+                type: 'kick',
+                duration: this.stepTime * 0.3,  // Very short kick for clear beat
+                velocity: 85 + Math.random() * 10,  // Slightly quieter than downbeat
                 period: 15
             };
         } else if (this.drumSnarePattern[stepInPattern]) {
             events.noise = {
                 trigger: true,
                 type: 'snare',
-                duration: this.stepTime * 0.25,  // Very short snare for snap
-                velocity: 70 + Math.random() * 10,
+                duration: this.stepTime * 0.15,  // Ultra short snare
+                velocity: 80 + Math.random() * 10,
                 period: 4
             };
         }
