@@ -165,6 +165,13 @@ class HarmonyMode {
             }
         });
 
+        // C key clears all notes from all channels (only in Insert Mode)
+        this.app.screen.key(['c', 'C'], () => {
+            if (this.insertMode) {
+                this.clearAllChannels();
+            }
+        });
+
         // I key toggles Insert Mode
         this.app.screen.key(['i', 'I'], () => this.toggleInsertMode());
 
@@ -193,6 +200,7 @@ class HarmonyMode {
         this.app.screen.unkey(']');
         this.app.screen.unkey(['p', 'P']);
         this.app.screen.unkey(['u', 'U']);
+        this.app.screen.unkey(['c', 'C']);
         this.app.screen.unkey(['i', 'I']);
         this.app.screen.unkey('escape');
 
@@ -521,7 +529,7 @@ class HarmonyMode {
         this.queuedNote = this.availableNotes[this.selectedNoteIndex];
 
         this.app.uiManager.showMessage(
-            'Insert Mode: [ ] select note, P insert, U clear, I or Esc to exit',
+            'Insert Mode: [ ] select, P add, U clear note, C clear all, I/Esc exit',
             'info'
         );
 
@@ -678,6 +686,28 @@ class HarmonyMode {
             // Update display to show the cleared position
             this.updateDisplay();
         }
+    }
+
+    clearAllChannels() {
+        // Clear all notes from all channels
+        const totalSteps = this.app.parameters.loopLength * 16;
+
+        // Clear each channel's pattern
+        for (const channelId of Object.keys(this.channelMap)) {
+            const channel = this.channelMap[channelId];
+            if (this.patterns[channel]) {
+                // Fill with nulls to create complete silence
+                this.patterns[channel] = new Array(totalSteps).fill(null);
+            }
+        }
+
+        this.app.uiManager.showMessage(
+            'Cleared all notes from all channels',
+            'warning'
+        );
+
+        // Update display to show the cleared patterns
+        this.updateDisplay();
     }
 
     updateDisplay() {
