@@ -94,11 +94,120 @@ const noteDurations = [
 ```
 
 ### Piano Roll Visualization
-- **Playhead**: Stationary vertical line (music scrolls past)
-- **Notes**: Individual note symbols on timeline
-- **Beat Dots**: Visual markers for beats (• • • •)
-- **Bar Lines**: Vertical lines marking measure boundaries (┊)
-- **Edit Cursor**: Highlighted position when paused (█)
+
+#### Overall Layout
+The piano roll displays a horizontally scrolling timeline where music moves from right to left past a stationary playhead. Each channel occupies its own horizontal lane, with time progressing horizontally and pitch represented by note placement.
+
+#### Playhead Design
+- **Position**: Fixed at center of display (column 32 in 64-column view)
+- **Appearance**: Bright vertical line spanning all channels
+- **Color**: Cyan (#00ffff) for visibility
+- **Symbol**: Full block character (█) or pipe (|)
+- **Behavior**: Remains stationary while music scrolls past
+- **Current Step Display**: Shows numerical position below channels
+
+#### Time Grid and Markers
+
+##### Beat Markers
+- **Quarter Note Dots**: Small dots (•) mark each beat
+- **Position**: Every 4 steps (16th note resolution)
+- **Color**: Dim gray (#4a4a4a) for subtlety
+- **Pattern**: • • • • repeating across timeline
+- **Visibility**: Always visible as background grid
+
+##### Bar Lines
+- **Measure Boundaries**: Vertical lines mark start of each bar
+- **Symbol**: Light vertical line (┊) or dotted line (┊)
+- **Color**: Medium gray (#6a6a6a) slightly brighter than beat dots
+- **Frequency**: Every 16 steps in 4/4 time (adjusts with time signature)
+- **Height**: Spans full height of each channel lane
+
+##### Bar Numbers
+- **Display**: Bar numbers shown above timeline (Bar 1, Bar 2, etc.)
+- **Position**: Aligned with bar lines
+- **Update**: Numbers scroll with music
+
+#### Note Display
+
+##### Active Notes
+- **Symbol**: Note symbols based on duration:
+  - Whole note: 𝅝
+  - Half note: 𝅗𝅥
+  - Quarter note: ♩
+  - Eighth note: ♪
+  - Sixteenth note: ♬
+- **Default Symbol**: Block character (█) for simple display
+- **Color**: Channel-specific colors:
+  - Channel 1: Green (#00ff00)
+  - Channel 2: Blue (#0088ff)
+  - Channel 3: Yellow (#ffff00)
+  - Channel 4: Magenta (#ff00ff)
+
+##### Note Duration Visualization
+- **Sustained Notes**: Horizontal line (─) extends for note duration
+- **Note Start**: Bright symbol at attack point
+- **Note Sustain**: Dimmer line showing held duration
+- **Note End**: Clear termination point
+
+#### Edit Mode Cursor (When Paused)
+- **Appearance**: Highlighted block (▓) or inverted colors
+- **Color**: White background with black text
+- **Movement**: Snaps to grid based on selected duration
+- **Indicator**: Shows current bar and beat position
+- **Ghost Note**: Semi-transparent preview of note to be placed
+
+#### Visual Example
+```
+   Bar 1        Bar 2        Bar 3        Bar 4
+   ┊            ┊            ┊            ┊
+Ch1 • • • • ♩───• • • • • • ♩─• • • █ • • • • •
+Ch2 • • ♪─• • • • • • • • • • • • • │ • • • • •
+Ch3 ♬ • • • • • • ♬ • • • • • • • • │ • • • • •
+Ch4 • • • • • • • • • • • • • • • • │ • • • • •
+                                    ↑
+                            Playhead (stationary)
+                           Step: 48/64
+```
+
+#### Scrolling Behavior
+- **Direction**: Music scrolls right to left
+- **Speed**: Synchronized with tempo (faster tempo = faster scroll)
+- **Smoothness**: Interpolated movement between steps
+- **Loop Point**: Seamless wrap from end to beginning
+- **Look-ahead**: Shows upcoming 32 steps to the right
+- **History**: Shows past 31 steps to the left
+
+#### Color Scheme
+```javascript
+const visualTheme = {
+  background: '#000000',        // Black background
+  playhead: '#00ffff',         // Cyan playhead
+  beatDots: '#4a4a4a',         // Dim gray beat markers
+  barLines: '#6a6a6a',         // Medium gray bar lines
+  channels: {
+    1: { active: '#00ff00', dim: '#004400' },  // Green
+    2: { active: '#0088ff', dim: '#002244' },  // Blue
+    3: { active: '#ffff00', dim: '#444400' },  // Yellow
+    4: { active: '#ff00ff', dim: '#440044' }   // Magenta
+  },
+  editCursor: '#ffffff',       // White cursor
+  selectedChannel: '#00b894',  // Mint green highlight
+  insertMode: '#ff6b9d'        // Hot pink accents
+};
+```
+
+#### Responsive Design
+- **Terminal Width**: Adapts to terminal size (minimum 80 columns)
+- **Channel Height**: Each channel occupies 1-2 lines
+- **Compact Mode**: Single line per channel with simplified symbols
+- **Extended Mode**: Two lines per channel with note names
+
+#### Animation and Updates
+- **Frame Rate**: 60 FPS for smooth scrolling
+- **Step Advance**: Discrete jumps at each 16th note
+- **Interpolation**: Smooth visual transition between steps
+- **Note Flash**: Brief highlight when note triggers
+- **Edit Feedback**: Visual confirmation when placing/removing notes
 
 ## Control Summary
 
