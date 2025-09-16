@@ -25,6 +25,18 @@ class HarmonyMode {
         this.selectedNoteIndex = 0;
         this.queuedNote = null;
 
+        // Time-stop edit mode state
+        this.isPaused = false;
+        this.editCursor = 0; // Position for editing when paused
+        this.noteDurations = [
+            { name: 'whole', steps: 16, symbol: '𝅝' },
+            { name: 'half', steps: 8, symbol: '𝅗𝅥' },
+            { name: 'quarter', steps: 4, symbol: '♩' },
+            { name: 'eighth', steps: 2, symbol: '♪' },
+            { name: 'sixteenth', steps: 1, symbol: '♬' }
+        ];
+        this.selectedDurationIndex = 2; // Default to quarter note
+
         // Musical parameters
         this.octaveRange = 2; // Two octave range for random notes
 
@@ -172,6 +184,33 @@ class HarmonyMode {
             }
         });
 
+        // Spacebar pauses/resumes in Insert Mode
+        this.app.screen.key(['space'], () => {
+            if (this.insertMode) {
+                this.togglePause();
+            }
+        });
+
+        // Arrow keys for navigation when paused
+        this.app.screen.key(['left'], () => {
+            if (this.insertMode && this.isPaused) {
+                this.moveCursorLeft();
+            }
+        });
+
+        this.app.screen.key(['right'], () => {
+            if (this.insertMode && this.isPaused) {
+                this.moveCursorRight();
+            }
+        });
+
+        // D key cycles through note durations
+        this.app.screen.key(['d', 'D'], () => {
+            if (this.insertMode) {
+                this.cycleDuration();
+            }
+        });
+
         // I key toggles Insert Mode
         this.app.screen.key(['i', 'I'], () => this.toggleInsertMode());
 
@@ -201,7 +240,11 @@ class HarmonyMode {
         this.app.screen.unkey(['p', 'P']);
         this.app.screen.unkey(['u', 'U']);
         this.app.screen.unkey(['c', 'C']);
+        this.app.screen.unkey(['d', 'D']);
         this.app.screen.unkey(['i', 'I']);
+        this.app.screen.unkey(['space']);
+        this.app.screen.unkey(['left']);
+        this.app.screen.unkey(['right']);
         this.app.screen.unkey('escape');
 
         // Clean up parameter handlers
@@ -433,20 +476,27 @@ class HarmonyMode {
         if (elapsed >= stepTime) {
             this.lastStepTime += stepTime;
 
-            // Get events for current step
-            const events = this.getCurrentStepEvents();
+            // Only advance if not paused
+            if (!this.isPaused) {
+                // Get events for current step
+                const events = this.getCurrentStepEvents();
 
-            // Advance step
-            const totalSteps = this.app.parameters.loopLength * 16;
-            this.currentStep = (this.currentStep + 1) % totalSteps;
+                // Advance step
+                const totalSteps = this.app.parameters.loopLength * 16;
+                this.currentStep = (this.currentStep + 1) % totalSteps;
 
-            // Update display to show current playhead position
-            this.updateDisplay();
+                // Update display to show current playhead position
+                this.updateDisplay();
 
-            // Send pattern visualization data to UI
-            this.sendPatternVisualization();
+                // Send pattern visualization data to UI
+                this.sendPatternVisualization();
 
-            return events;
+                return events;
+            } else {
+                // When paused, still update display but don't advance or play
+                this.updateDisplay();
+                return null;
+            }
         }
 
         return null;
@@ -520,6 +570,8 @@ class HarmonyMode {
 
     enterInsertMode() {
         this.insertMode = true;
+        this.isPaused = false;
+        this.editCursor = this.currentStep; // Start cursor at current position
 
         // Generate available notes for current scale
         this.generateAvailableNotes();
@@ -529,7 +581,7 @@ class HarmonyMode {
         this.queuedNote = this.availableNotes[this.selectedNoteIndex];
 
         this.app.uiManager.showMessage(
-            'Insert Mode: [ ] select, P add, U clear note, C clear all, I/Esc exit',
+            'Insert Mode: Space pause, [ ] note, D duration, P add, U clear, I exit',
             'info'
         );
 
@@ -640,34 +692,48 @@ class HarmonyMode {
     insertQueuedNote() {
         if (!this.queuedNote) return;
 
-        // Insert note at current position
+        // Use edit cursor position when paused, otherwise current step
+        const position = this.isPaused ? this.editCursor : this.currentStep;
         const channelId = this.channelMap[this.selectedChannel];
+        const duration = this.noteDurations[this.selectedDurationIndex];
 
         if (channelId === 'noise') {
-            // For noise channel, add drum hit
-            this.patterns[channelId][this.currentStep] = {
-                trigger: true,
-                type: Math.random() > 0.5 ? 'kick' : 'snare',
-                duration: 0.2,
-                velocity: 80 + Math.random() * 20,
-                period: Math.random() > 0.5 ? 15 : 4
-            };
+            // For noise channel, add drum hit with duration
+            for (let i = 0; i < duration.steps; i++) {
+                const stepPos = (position + i) % (this.app.parameters.loopLength * 16);
+                this.patterns[channelId][stepPos] = {
+                    trigger: true,
+                    type: i === 0 ? (Math.random() > 0.5 ? 'kick' : 'snare') : null,
+                    duration: 0.1,
+                    velocity: i === 0 ? (80 + Math.random() * 20) : 40,
+                    period: Math.random() > 0.5 ? 15 : 4
+                };
+            }
         } else {
-            // For tonal channels, insert the queued note
-            this.patterns[channelId][this.currentStep] = {
-                frequency: this.queuedNote.frequency,
-                note: this.queuedNote.name,
-                velocity: 70 + Math.random() * 20,
-                duration: 0.5 // Half a beat for staccato notes
-            };
+            // For tonal channels, insert note with selected duration
+            const stepTime = (60 / this.app.parameters.tempo) / 4;
+            for (let i = 0; i < duration.steps; i++) {
+                const stepPos = (position + i) % (this.app.parameters.loopLength * 16);
+                this.patterns[channelId][stepPos] = {
+                    frequency: this.queuedNote.frequency,
+                    note: this.queuedNote.name,
+                    velocity: i === 0 ? (70 + Math.random() * 20) : 50,
+                    duration: stepTime * duration.steps,
+                    sustained: i > 0 // Mark continuation of note
+                };
+            }
         }
 
         this.app.uiManager.showMessage(
-            `Inserted ${this.queuedNote.name} at position ${this.currentStep}`,
+            `Inserted ${duration.name} note ${this.queuedNote.name} at position ${position}`,
             'success'
         );
 
-        // Stay in insert mode after adding note
+        // Advance cursor by duration if paused
+        if (this.isPaused) {
+            this.editCursor = (this.editCursor + duration.steps) % (this.app.parameters.loopLength * 16);
+            this.updateDisplay();
+        }
     }
 
     clearNoteAtPosition() {
@@ -710,10 +776,64 @@ class HarmonyMode {
         this.updateDisplay();
     }
 
+    togglePause() {
+        this.isPaused = !this.isPaused;
+
+        if (this.isPaused) {
+            this.editCursor = this.currentStep; // Set cursor to current position
+            this.app.uiManager.showMessage(
+                `PAUSED - Use ← → to move, D for duration, P to place note`,
+                'warning'
+            );
+        } else {
+            this.app.uiManager.showMessage(
+                'RESUMED - Playback continuing',
+                'success'
+            );
+        }
+
+        this.updateDisplay();
+    }
+
+    moveCursorLeft() {
+        const duration = this.noteDurations[this.selectedDurationIndex];
+        const totalSteps = this.app.parameters.loopLength * 16;
+        this.editCursor = (this.editCursor - duration.steps + totalSteps) % totalSteps;
+        this.updateDisplay();
+    }
+
+    moveCursorRight() {
+        const duration = this.noteDurations[this.selectedDurationIndex];
+        const totalSteps = this.app.parameters.loopLength * 16;
+        this.editCursor = (this.editCursor + duration.steps) % totalSteps;
+        this.updateDisplay();
+    }
+
+    cycleDuration() {
+        this.selectedDurationIndex = (this.selectedDurationIndex + 1) % this.noteDurations.length;
+        const duration = this.noteDurations[this.selectedDurationIndex];
+
+        this.app.uiManager.showMessage(
+            `Note duration: ${duration.symbol} ${duration.name} (${duration.steps} steps)`,
+            'info'
+        );
+
+        this.updateDisplay();
+    }
+
     updateDisplay() {
         // This will be called to update channel selection indicator
         if (this.app.uiManager && this.app.uiManager.updateHarmonyDisplay) {
-            this.app.uiManager.updateHarmonyDisplay(this.selectedChannel, this.insertMode, this.queuedNote, this.currentStep);
+            const displayStep = this.isPaused ? this.editCursor : this.currentStep;
+            this.app.uiManager.updateHarmonyDisplay(
+                this.selectedChannel,
+                this.insertMode,
+                this.queuedNote,
+                displayStep,
+                this.isPaused,
+                this.editCursor,
+                this.noteDurations[this.selectedDurationIndex]
+            );
         }
 
         // Also send pattern data for visualization

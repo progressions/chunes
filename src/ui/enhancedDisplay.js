@@ -306,8 +306,10 @@ class EnhancedUIManager {
             const selectedType = channelTypes[this.harmonySelectedChannel - 1];
 
             if (this.insertMode && this.queuedNote) {
-                // Show queued note in insert mode with U key for clear
-                line2 += `  {#a29bfe-fg}│{/#a29bfe-fg}  {#fab1a0-fg}Ch:{/#fab1a0-fg} {bold}{#ff6b9d-fg}${this.harmonySelectedChannel}{/#ff6b9d-fg}{/bold}  {#a29bfe-fg}│{/#a29bfe-fg}  {#fab1a0-fg}Note:{/#fab1a0-fg} {bold}{#00b894-fg}${this.queuedNote.name}{/#00b894-fg}{/bold}  {#a29bfe-fg}│{/#a29bfe-fg}  {#ff6b9d-fg}[P]{/#ff6b9d-fg} Add  {#fdcb6e-fg}[U]{/#fdcb6e-fg} Clear`;
+                // Show queued note and duration in insert mode
+                const durationSymbol = this.currentDuration ? this.currentDuration.symbol : '♩';
+                const pauseStatus = this.isPaused ? ' {red-fg}[PAUSED]{/red-fg}' : '';
+                line2 += `  {#a29bfe-fg}│{/#a29bfe-fg}  {#fab1a0-fg}Ch:{/#fab1a0-fg} {bold}{#ff6b9d-fg}${this.harmonySelectedChannel}{/#ff6b9d-fg}{/bold}  {#fab1a0-fg}Note:{/#fab1a0-fg} {bold}{#00b894-fg}${this.queuedNote.name}{/#00b894-fg}{/bold}  {#fab1a0-fg}Dur:{/#fab1a0-fg} {bold}{#fdcb6e-fg}${durationSymbol}{/#fdcb6e-fg}{/bold}${pauseStatus}`;
             } else {
                 // Normal H mode display
                 line2 += `  {#fab1a0-fg}Selected:{/#fab1a0-fg} {bold}{#ff6b9d-fg}Ch${this.harmonySelectedChannel} (${selectedType}){/#ff6b9d-fg}{/bold}`;
@@ -352,8 +354,13 @@ class EnhancedUIManager {
         } else if (this.mode === 'harmony') {
             if (this.insertMode) {
                 // Insert mode controls
-                content = ` {yellow-fg}INSERT MODE:{/yellow-fg}  {magenta-fg}[{/magenta-fg}{green-fg}[]{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Select{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}P{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Add{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}U{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Clear{/cyan-fg}  {magenta-fg}[{/magenta-fg}{red-fg}C{/red-fg}{magenta-fg}]{/magenta-fg} {red-fg}Clear All{/red-fg}  {magenta-fg}[{/magenta-fg}{green-fg}I{/green-fg}{magenta-fg}]{/magenta-fg} Exit\n` +
-                      ` {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo  {magenta-fg}[{/magenta-fg}{green-fg}K{/green-fg}{magenta-fg}]{/magenta-fg} Key  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Scale  {magenta-fg}[{/magenta-fg}{green-fg}Esc{/green-fg}{magenta-fg}]{/magenta-fg} Cancel  {magenta-fg}[{/magenta-fg}{green-fg}H{/green-fg}{magenta-fg}]{/magenta-fg} Exit H-Mode  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
+                if (this.isPaused) {
+                    content = ` {red-fg}PAUSED:{/red-fg}  {magenta-fg}[{/magenta-fg}{green-fg}←→{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Move{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}[]{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Note{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}D{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Duration{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}P{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Place{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}Space{/green-fg}{magenta-fg}]{/magenta-fg} Resume\n` +
+                          ` {magenta-fg}[{/magenta-fg}{green-fg}U{/green-fg}{magenta-fg}]{/magenta-fg} Clear  {magenta-fg}[{/magenta-fg}{red-fg}C{/red-fg}{magenta-fg}]{/magenta-fg} Clear All  {magenta-fg}[{/magenta-fg}{green-fg}I{/green-fg}{magenta-fg}]{/magenta-fg} Exit Insert  {magenta-fg}[{/magenta-fg}{green-fg}H{/green-fg}{magenta-fg}]{/magenta-fg} Exit H-Mode`;
+                } else {
+                    content = ` {yellow-fg}INSERT:{/yellow-fg}  {magenta-fg}[{/magenta-fg}{green-fg}Space{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Pause{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}[]{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Note{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}D{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Duration{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}P{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Add{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}U{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Clear{/cyan-fg}\n` +
+                          ` {magenta-fg}[{/magenta-fg}{red-fg}C{/red-fg}{magenta-fg}]{/magenta-fg} Clear All  {magenta-fg}[{/magenta-fg}{green-fg}I{/green-fg}{magenta-fg}]{/magenta-fg} Exit  {magenta-fg}[{/magenta-fg}{green-fg}H{/green-fg}{magenta-fg}]{/magenta-fg} Exit H-Mode  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
+                }
             } else {
                 // Normal H mode controls
                 content = ` {magenta-fg}[{/magenta-fg}{green-fg}[{/green-fg}{magenta-fg}]{/magenta-fg} {magenta-fg}[{/magenta-fg}{green-fg}]{/green-fg}{magenta-fg}]{/magenta-fg} Select Channel  {magenta-fg}[{/magenta-fg}{green-fg}P{/green-fg}{magenta-fg}]{/magenta-fg} Add Random  {magenta-fg}[{/magenta-fg}{green-fg}I{/green-fg}{magenta-fg}]{/magenta-fg} Insert Mode  {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo\n` +
@@ -528,13 +535,22 @@ class EnhancedUIManager {
                     }
                 }
 
-                // Show playhead at fixed center position
+                // Show playhead and edit cursor
                 if (i === playheadPosition) {
-                    // Show playhead with preview indicator
-                    if (this.insertMode && this.harmonySelectedChannel === (channelIndex + 1)) {
-                        result += chalk.hex('#00b894').bold('▼'); // Mint green caret for insert preview
-                    } else {
+                    // Show playhead (stays in center)
+                    if (!this.isPaused) {
                         result += chalk.hex('#fdcb6e').bold('│'); // Yellow vertical line as playhead
+                    } else {
+                        result += chalk.hex('#808080')('│'); // Gray when paused
+                    }
+                } else if (this.isPaused && this.insertMode) {
+                    // Show edit cursor when paused
+                    const cursorOffset = this.editCursor - this.patternStep;
+                    const cursorPosition = (cursorOffset + playheadPosition + width) % width;
+                    if (i === cursorPosition) {
+                        result += chalk.hex('#00b894').bold('▼'); // Mint green cursor
+                    } else {
+                        result += chalk.hex(color)(char);
                     }
                 } else {
                     result += chalk.hex(color)(char);
@@ -563,11 +579,14 @@ class EnhancedUIManager {
         return result;
     }
 
-    updateHarmonyDisplay(selectedChannel, insertMode = false, queuedNote = null, currentStep = 0) {
+    updateHarmonyDisplay(selectedChannel, insertMode = false, queuedNote = null, currentStep = 0, isPaused = false, editCursor = 0, currentDuration = null) {
         this.harmonySelectedChannel = selectedChannel;
         this.insertMode = insertMode;
         this.queuedNote = queuedNote;
         this.patternStep = currentStep;
+        this.isPaused = isPaused;
+        this.editCursor = editCursor;
+        this.currentDuration = currentDuration;
 
         // Calculate current position for playhead
         const loopLength = this.parameters.loopLength || 8;
