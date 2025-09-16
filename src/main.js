@@ -7,6 +7,7 @@ const { EnhancedUIManager } = require('./ui/enhancedDisplay');
 const { ControlHandler } = require('./ui/controls');
 const { LiveMode } = require('./modes/live');
 const { BufferMode } = require('./modes/buffer');
+const { HarmonyMode } = require('./modes/harmony');
 const { BufferManager } = require('./export/buffer');
 const { SessionManager } = require('./export/session');
 const chalk = require('chalk');
@@ -35,6 +36,7 @@ class ChiptuneGenerator {
         // Initialize modes
         this.liveMode = new LiveMode(this);
         this.bufferMode = new BufferMode(this);
+        this.harmonyMode = new HarmonyMode(this);
 
         // Current parameters
         this.parameters = {
@@ -107,8 +109,17 @@ class ChiptuneGenerator {
         if (!this.isRunning) return;
 
         try {
-            // Check for musical events
-            const events = this.musicGenerator.update();
+            // Check for musical events based on current mode
+            let events = null;
+
+            if (this.currentMode === 'harmony') {
+                // In H Mode, get events from harmony patterns
+                events = this.harmonyMode.update();
+            } else if (this.currentMode === 'live') {
+                // In Live Mode, get events from procedural generator
+                events = this.musicGenerator.update();
+            }
+            // Buffer mode doesn't generate new events, it plays recorded ones
 
             if (events) {
                 // Play notes on channels
@@ -171,14 +182,33 @@ class ChiptuneGenerator {
             this.switchMode('buffer');
         });
 
+        // H Mode toggle
+        this.screen.key(['h', 'H'], () => {
+            this.toggleHarmonyMode();
+        });
+
         this.screen.key(['escape'], () => {
             if (this.currentMode === 'buffer') {
+                this.switchMode('live');
+            } else if (this.currentMode === 'harmony') {
                 this.switchMode('live');
             }
         });
 
         // Parameter controls are handled by the active mode directly
         // The mode will set up its own listeners in activate()
+    }
+
+    toggleHarmonyMode() {
+        if (this.currentMode === 'harmony') {
+            // Exit H Mode back to Live Mode
+            this.switchMode('live');
+            this.uiManager.showMessage('Exited H Mode - Returning to Live Mode', 'info');
+        } else {
+            // Enter H Mode from any other mode
+            this.switchMode('harmony');
+            this.uiManager.showMessage('Entered H Mode - Building Harmony', 'success');
+        }
     }
 
     switchMode(mode) {
@@ -189,6 +219,8 @@ class ChiptuneGenerator {
             this.liveMode.deactivate();
         } else if (this.currentMode === 'buffer') {
             this.bufferMode.deactivate();
+        } else if (this.currentMode === 'harmony') {
+            this.harmonyMode.deactivate();
         }
 
         // Switch mode
@@ -200,6 +232,8 @@ class ChiptuneGenerator {
             this.liveMode.activate();
         } else if (mode === 'buffer') {
             this.bufferMode.activate();
+        } else if (mode === 'harmony') {
+            this.harmonyMode.activate();
         }
 
         this.screen.render();

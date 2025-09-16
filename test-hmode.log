@@ -1,0 +1,15 @@
+
+> chiptune-generator@1.0.0 start
+> node src/main.js
+
+]0;Chiptune Generator[?1049h[?1h=[1;1r[?25l[1;1H[H[2J[?1l>[?12l[?25h[H[2J[?1049lTypeError: Cannot read properties of undefined (reading 'loopLength')
+    at HarmonyMode.initializePatterns (/Users/isaacpriestley/tech/isaacpriestley/chunes/src/modes/harmony.js:30:48)
+    at new HarmonyMode (/Users/isaacpriestley/tech/isaacpriestley/chunes/src/modes/harmony.js:25:14)
+    at new ChiptuneGenerator (/Users/isaacpriestley/tech/isaacpriestley/chunes/src/main.js:39:28)
+    at Object.<anonymous> (/Users/isaacpriestley/tech/isaacpriestley/chunes/src/main.js:298:13)
+    at Module._compile (node:internal/modules/cjs/loader:1738:14)
+    at Object..js (node:internal/modules/cjs/loader:1871:10)
+    at Module.load (node:internal/modules/cjs/loader:1470:32)
+    at Module._load (node:internal/modules/cjs/loader:1290:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:238:24)

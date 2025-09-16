@@ -8,6 +8,7 @@ class EnhancedUIManager {
         this.screen = screen;
         this.mode = 'live';
         this.boxes = {};
+        this.harmonySelectedChannel = 1; // Track selected channel in H Mode
 
         // Pastel color palette from spec
         this.colorPalette = {
@@ -232,8 +233,15 @@ class EnhancedUIManager {
         const params = this.parameters;
 
         // Use the pastel colors from the palette
+        let modeDisplay = 'LIVE';
+        if (this.mode === 'harmony') {
+            modeDisplay = 'H-MODE';
+        } else if (this.mode === 'buffer') {
+            modeDisplay = 'BUFFER';
+        }
+
         const line1 = `  {#fab1a0-fg}Genre:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.genre}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Key:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.key} ${params.scale}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Tempo:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.tempo} BPM{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Time:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.timeSignature}{/#74b9ff-fg}{/bold}`;
-        const line2 = `  {#fab1a0-fg}Loop:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.loopLength} bars{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Swing:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.swing ? 'ON' : 'OFF'}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Mode:{/#fab1a0-fg} {bold}{#00b894-fg}LIVE{/#00b894-fg}{/bold}`;
+        const line2 = `  {#fab1a0-fg}Loop:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.loopLength} bars{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Swing:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.swing ? 'ON' : 'OFF'}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Mode:{/#fab1a0-fg} {bold}{#00b894-fg}${modeDisplay}{/#00b894-fg}{/bold}`;
 
         if (this.boxes.parameters) {
             this.boxes.parameters.setContent(`\n${line1}\n${line2}\n`);
@@ -269,7 +277,12 @@ class EnhancedUIManager {
         let content = '';
         if (this.mode === 'live') {
             content = ` {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo  {magenta-fg}[{/magenta-fg}{green-fg}G{/green-fg}{magenta-fg}]{/magenta-fg} Genre  {magenta-fg}[{/magenta-fg}{green-fg}K{/green-fg}{magenta-fg}]{/magenta-fg} Key  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Scale  {magenta-fg}[{/magenta-fg}{green-fg}L{/green-fg}{magenta-fg}]{/magenta-fg} Loop  {magenta-fg}[{/magenta-fg}{green-fg}W{/green-fg}{magenta-fg}]{/magenta-fg} Swing\n` +
-                  ` {magenta-fg}[{/magenta-fg}{green-fg}3{/green-fg}{magenta-fg}]{/magenta-fg}{magenta-fg}[{/magenta-fg}{green-fg}4{/green-fg}{magenta-fg}]{/magenta-fg} Time  {magenta-fg}[{/magenta-fg}{green-fg}B{/green-fg}{magenta-fg}]{/magenta-fg} Buffer  {magenta-fg}[{/magenta-fg}{green-fg}Ctrl+S{/green-fg}{magenta-fg}]{/magenta-fg} Save  {magenta-fg}[{/magenta-fg}{green-fg}Ctrl+L{/green-fg}{magenta-fg}]{/magenta-fg} Load  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
+                  ` {magenta-fg}[{/magenta-fg}{green-fg}H{/green-fg}{magenta-fg}]{/magenta-fg} H-Mode  {magenta-fg}[{/magenta-fg}{green-fg}B{/green-fg}{magenta-fg}]{/magenta-fg} Buffer  {magenta-fg}[{/magenta-fg}{green-fg}Ctrl+S{/green-fg}{magenta-fg}]{/magenta-fg} Save  {magenta-fg}[{/magenta-fg}{green-fg}Ctrl+L{/green-fg}{magenta-fg}]{/magenta-fg} Load  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
+        } else if (this.mode === 'harmony') {
+            content = ` {magenta-fg}[{/magenta-fg}{green-fg}[{/green-fg}{magenta-fg}]{/magenta-fg} {magenta-fg}[{/magenta-fg}{green-fg}]{/green-fg}{magenta-fg}]{/magenta-fg} Select  {magenta-fg}[{/magenta-fg}{green-fg}P{/green-fg}{magenta-fg}]{/magenta-fg} Add Note  {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo  {magenta-fg}[{/magenta-fg}{green-fg}K{/green-fg}{magenta-fg}]{/magenta-fg} Key  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Scale\n` +
+                  ` {magenta-fg}[{/magenta-fg}{green-fg}H{/green-fg}{magenta-fg}]{/magenta-fg} Exit H-Mode  {magenta-fg}[{/magenta-fg}{green-fg}B{/green-fg}{magenta-fg}]{/magenta-fg} Buffer  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
+        } else if (this.mode === 'buffer') {
+            content = ` {magenta-fg}[{/magenta-fg}{green-fg}←/→{/green-fg}{magenta-fg}]{/magenta-fg} Seek  {magenta-fg}[{/magenta-fg}{green-fg}Space{/green-fg}{magenta-fg}]{/magenta-fg} Play  {magenta-fg}[{/magenta-fg}{green-fg}Enter{/green-fg}{magenta-fg}]{/magenta-fg} Mark  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Save  {magenta-fg}[{/magenta-fg}{green-fg}ESC{/green-fg}{magenta-fg}]{/magenta-fg} Live  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
         }
 
         if (this.boxes.controls) {
@@ -336,9 +349,24 @@ class EnhancedUIManager {
         const channelId = Object.keys(this.flowBuffers)[channelIndex];
 
         if (this.boxes[`channel${channelIndex + 1}`]) {
-            const content = `${chalk.hex(channelColors[channelIndex])(channelNames[channelIndex])} ${this.getFlowVisualization(channelIndex)}`;
+            let content = `${chalk.hex(channelColors[channelIndex])(channelNames[channelIndex])} ${this.getFlowVisualization(channelIndex)}`;
+
+            // Add selection indicator in H Mode
+            if (this.mode === 'harmony' && this.harmonySelectedChannel === (channelIndex + 1)) {
+                content += ` ${chalk.hex('#ff6b9d')('←')}`;  // Hot pink arrow
+            }
+
             this.boxes[`channel${channelIndex + 1}`].setContent(content);
         }
+    }
+
+    updateHarmonyDisplay(selectedChannel) {
+        this.harmonySelectedChannel = selectedChannel;
+        // Trigger update for all channels to show/hide selection
+        for (let i = 0; i < 4; i++) {
+            this.updateChannelDisplay(i);
+        }
+        this.screen.render();
     }
 
     startFlowAnimation() {
