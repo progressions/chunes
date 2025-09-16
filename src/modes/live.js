@@ -102,6 +102,9 @@ class LiveMode {
         if (newValue !== currentValue && newValue !== undefined) {
             this.app.updateParameter(param, newValue);
 
+            // Trigger parameter change animation
+            this.app.uiManager.onParameterChange(param, newValue);
+
             // Format the message based on parameter type
             let displayValue = newValue;
             if (param === 'tempo') {

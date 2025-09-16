@@ -3,7 +3,7 @@
 const blessed = require('blessed');
 const { ImprovedAudioPlayer } = require('./audio/improvedPlayer');
 const { ProceduralGenerator } = require('./music/proceduralGenerator');
-const { UIManager } = require('./ui/display');
+const { EnhancedUIManager } = require('./ui/enhancedDisplay');
 const { ControlHandler } = require('./ui/controls');
 const { LiveMode } = require('./modes/live');
 const { BufferMode } = require('./modes/buffer');
@@ -29,7 +29,7 @@ class ChiptuneGenerator {
             title: 'Chiptune Generator'
         });
 
-        this.uiManager = new UIManager(this.screen);
+        this.uiManager = new EnhancedUIManager(this.screen);
         this.controlHandler = new ControlHandler(this.screen);
 
         // Initialize modes
@@ -104,15 +104,35 @@ class ChiptuneGenerator {
                 // Play notes on channels
                 if (events.pulse1) {
                     this.audioPlayer.playNote('pulse1', events.pulse1.frequency, events.pulse1.duration);
+                    this.uiManager.updateChannelVisualization('pulse1', {
+                        active: true,
+                        velocity: events.pulse1.velocity,
+                        note: events.pulse1.note
+                    });
                 }
                 if (events.pulse2) {
                     this.audioPlayer.playNote('pulse2', events.pulse2.frequency, events.pulse2.duration);
+                    this.uiManager.updateChannelVisualization('pulse2', {
+                        active: true,
+                        velocity: events.pulse2.velocity,
+                        note: events.pulse2.note
+                    });
                 }
                 if (events.triangle) {
                     this.audioPlayer.playNote('triangle', events.triangle.frequency, events.triangle.duration);
+                    this.uiManager.updateChannelVisualization('triangle', {
+                        active: true,
+                        velocity: events.triangle.velocity,
+                        note: events.triangle.note
+                    });
                 }
                 if (events.noise && events.noise.trigger) {
                     this.audioPlayer.playNote('noise', 0, events.noise.duration);
+                    this.uiManager.updateChannelVisualization('noise', {
+                        active: true,
+                        type: events.noise.type,
+                        velocity: events.noise.velocity
+                    });
                 }
             }
 
