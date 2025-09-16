@@ -395,7 +395,8 @@ class EnhancedUIManager {
         let result = '';
         for (let i = 0; i < width; i++) {
             const char = buffer[i] || ' ';
-            const color = this.gradientColors[i % this.gradientColors.length];
+            const colorIndex = Math.floor((i / width) * this.flowGradient.length);
+            const color = this.flowGradient[colorIndex];
 
             // Show playhead caret at current position
             if (this.mode === 'harmony' && this.currentLoopPosition !== undefined) {
