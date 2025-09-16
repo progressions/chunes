@@ -1,26 +1,27 @@
 # H Mode (Harmony Building Mode) - Technical Specification
 
 ## Overview
-H Mode is a live harmony building mode that allows real-time construction of harmonic patterns by adding scale-appropriate notes to monochromatic channel drones while they play.
+H Mode is a live harmony building mode that allows real-time construction of harmonic patterns by adding scale-appropriate notes to channels while they play. The mode provides pattern building capabilities with real-time editing and visualization.
 
 ## Mode Activation & State
 
 ### Entering H Mode
 - **Trigger**: Press `H` key from Live Generation Mode
-- **Initial State**: Each channel starts with root note of current key as monochromatic pulse
-- **Transition**: Smooth fade from procedural generation to drone state (500ms)
+- **Initial State**: Each channel starts with a sparse pattern of notes
+- **Transition**: Switches from procedural generation to pattern-based playback
 
 ### Channel Initialization
 ```javascript
 const hModeInitialization = {
-  // All channels start with root note drone
-  channel1: { note: getCurrentKey().root, pattern: [1,1,1,1,1,1,1,1] }, // Root pulse
-  channel2: { note: getCurrentKey().root, pattern: [1,1,1,1,1,1,1,1] }, // Root pulse  
-  channel3: { note: getCurrentKey().root, pattern: [1,1,1,1,1,1,1,1] }, // Root pulse
-  channel4: { note: getCurrentKey().root, pattern: [1,1,1,1,1,1,1,1] }, // Root pulse
-  
-  selectedChannel: 1,  // Start with Channel 1 selected
-  
+  // Each channel starts with a sparse pattern
+  channel1: { pattern: generateInitialPattern() }, // Sparse melodic pattern
+  channel2: { pattern: generateInitialPattern() }, // Sparse harmonic pattern
+  channel3: { pattern: generateInitialPattern() }, // Sparse bass pattern
+  channel4: { pattern: generateInitialPattern() }, // Sparse rhythm pattern
+
+  selectedChannel: 0,  // Start with Channel 1 (index 0) selected
+  insertMode: false,   // Start in channel selection mode
+
   // Preserve current parameters
   tempo: getCurrentTempo(),
   key: getCurrentKey(),
@@ -33,9 +34,10 @@ const hModeInitialization = {
 ## Channel Selection System
 
 ### Navigation Controls
-- **`[` key**: Move up one channel (1→2→3→4→1)
-- **`]` key**: Move down one channel (4→3→2→1→4)
-- **Wrapping**: Channel selection wraps around (after Ch4 goes to Ch1)
+- **`[` key**: Move to previous channel (wraps from Ch1 to Ch4)
+- **`]` key**: Move to next channel (wraps from Ch4 to Ch1)
+- **Number keys 1-4**: Direct channel selection
+- **Wrapping**: Channel selection wraps around in both directions
 
 ### Visual Channel Selection Indicator
 ```javascript
@@ -69,11 +71,16 @@ const channelSelectionDisplay = {
 
 ## Note Addition System
 
-### Note Addition Control
-- **`P` key**: Add random scale-appropriate note at current loop position
-- **Timing**: Note added at whatever beat position is currently playing
-- **Scale Compliance**: Only notes from current scale (Major/Minor/Blues) are selected
-- **Randomization**: Random selection from available scale notes
+### Insert Mode (I Mode)
+- **`I` key**: Toggle Insert Mode for manual note placement
+- **Visual Indicator**: Shows "INSERT MODE" when active
+- **Note Queue**: Displays available notes to select from
+
+### Note Selection and Placement
+- **`[` / `]` keys in Insert Mode**: Navigate through available notes (octaves 2-6)
+- **`P` key**: Place selected note at current playhead position
+- **Note Duration**: Notes play as quarter notes (4 steps)
+- **Scale Compliance**: Notes are automatically adjusted to current scale
 
 ### Note Addition Logic
 ```javascript
@@ -231,10 +238,11 @@ const channelCoordination = {
 
 ## Mode Exit & Integration
 
-### Exiting H Mode
+### Mode Transitions
 - **First H press**: Enter H Mode (procedural → harmony building)
-- **Second H press**: Return to Live Mode with pattern memory
-- **Behavior**: Built patterns continue playing, procedural generation resumes on top
+- **Second H press**: Return to Live Mode (progression mode)
+- **I key**: Toggle Insert Mode within H Mode
+- **Behavior**: Built patterns are preserved when switching modes
 
 ### Pattern Integration Logic
 ```javascript
@@ -270,40 +278,59 @@ const modeExit = {
 ### H Mode Controls
 ```
 Mode Control:
-H                    - Toggle H Mode (enter/exit)
+H                    - Toggle H Mode (enter/exit to progression mode)
+I                    - Toggle Insert Mode (manual note placement)
+Spacebar            - Pause/Resume playback (time-stop edit mode)
 
 Channel Navigation:
-[ ]                  - Previous/Next channel selection
+[ ]                  - Previous/Next channel (or note in Insert Mode)
+1-4                 - Direct channel selection
 
 Pattern Building:
-P                    - Add random scale note at current position
+P                    - Place selected note at current position
+U                    - Clear note at current position
+C                    - Clear all channels (remove all notes)
+
+Time-Stop Edit Mode (when paused):
+D                    - Cycle through note durations (whole to sixteenth)
+← →                  - Move edit cursor by selected duration
+P                    - Place note at cursor with selected duration
 
 Standard Parameters (still active):
-T/Shift+T           - Tempo
-K/Shift+K           - Key (transposes patterns)
-S/Shift+S           - Scale (affects future additions)
+T/Shift+T           - Tempo adjust
+K/Shift+K           - Key change (transposes patterns)
+S/Shift+S           - Scale change (affects note selection)
 3/4                 - Time signature
 L/Shift+L           - Loop length
-W                   - Swing
+W                   - Toggle swing
 
 Mode Switching:
 B                   - Buffer Mode (with built patterns)
-Q                   - Quit
+Q                   - Quit application
 ```
 
 ## Technical Implementation Notes
 
 ### Pattern Data Structure
 ```javascript
-const channelPattern = {
-  baseNote: 'C4',               // Root drone note
-  addedNotes: [                 // Additional notes added via P key
-    { position: 2, note: 'D4', velocity: 75, timestamp: '...' },
-    { position: 5, note: 'E4', velocity: 82, timestamp: '...' },
-    { position: 7, note: 'G4', velocity: 78, timestamp: '...' }
-  ],
-  loopLength: 8,                // In beats
-  complexity: 0.375             // Ratio of added notes to total positions
+const channelPattern = [
+  // Array of step objects (null = no note)
+  null,                           // Step 0: silence
+  { note: 'C4', duration: 4 },    // Step 1: C4 for 4 steps
+  null,                           // Step 2: silence
+  null,                           // Step 3: silence
+  { note: 'E4', duration: 2 },    // Step 4: E4 for 2 steps
+  null,                           // Step 5: silence
+  { note: 'G4', duration: 1 },    // Step 6: G4 for 1 step
+  null,                           // Step 7: silence
+  // Pattern continues for full loop length
+];
+
+// Pattern metadata
+const patternInfo = {
+  loopLength: 64,                // Total steps (e.g., 4 bars * 16 steps)
+  activeNotes: 12,                // Number of non-null positions
+  channels: [pattern1, pattern2, pattern3, pattern4]
 };
 ```
 
