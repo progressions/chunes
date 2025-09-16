@@ -1,0 +1,23 @@
+{
+  "name": "chiptune-generator",
+  "version": "1.0.0",
+  "description": "A Node.js command-line application that generates continuous chiptune music loops",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "dev": "node src/main.js"
+  },
+  "keywords": ["chiptune", "music", "generator", "procedural", "NES"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "speaker": "^0.5.4",
+    "blessed": "^0.1.81",
+    "chalk": "^4.1.2",
+    "gradient-string": "^2.0.2",
+    "keypress": "^0.2.1",
+    "fs-extra": "^11.1.1",
+    "uuid": "^9.0.0"
+  }
+}

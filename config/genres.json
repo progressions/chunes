@@ -1,0 +1,67 @@
+{
+  "genres": {
+    "rock": {
+      "name": "Rock",
+      "description": "Driving rhythms, power chords",
+      "tempo_range": [100, 140],
+      "default_tempo": 120,
+      "characteristics": {
+        "rhythm": "driving",
+        "dynamics": "strong",
+        "density": "medium"
+      },
+      "chord_progressions": [
+        ["I", "V", "vi", "IV"],
+        ["I", "bVII", "IV", "I"],
+        ["I", "vi", "IV", "V"]
+      ],
+      "drum_patterns": {
+        "kick": [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+        "snare": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        "hihat": [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+      }
+    },
+    "soft": {
+      "name": "Soft",
+      "description": "Gentle, ambient, relaxed",
+      "tempo_range": [60, 100],
+      "default_tempo": 80,
+      "characteristics": {
+        "rhythm": "gentle",
+        "dynamics": "soft",
+        "density": "sparse"
+      },
+      "chord_progressions": [
+        ["IM7", "VIM7", "IIM7", "V7"],
+        ["I", "V", "vi", "iii", "IV", "I", "IV", "V"],
+        ["I", "IV", "I", "IV"]
+      ],
+      "drum_patterns": {
+        "kick": [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        "snare": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        "hihat": [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]
+      }
+    },
+    "bossa": {
+      "name": "Bossa Nova",
+      "description": "Syncopated, jazzy, Brazilian",
+      "tempo_range": [80, 120],
+      "default_tempo": 95,
+      "characteristics": {
+        "rhythm": "syncopated",
+        "dynamics": "smooth",
+        "density": "complex"
+      },
+      "chord_progressions": [
+        ["IIM7", "V7", "IM7", "IM7"],
+        ["IM7", "I7", "IVM7", "IVm7", "IM7", "V7", "IM7", "IM7"],
+        ["IM7", "VIM7", "IIM7", "V7"]
+      ],
+      "drum_patterns": {
+        "kick": [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+        "snare": [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+        "hihat": [1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0]
+      }
+    }
+  }
+}

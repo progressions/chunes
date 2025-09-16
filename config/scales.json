@@ -1,0 +1,49 @@
+{
+  "scales": {
+    "major": {
+      "name": "Major",
+      "intervals": [0, 2, 4, 5, 7, 9, 11],
+      "description": "Happy, bright sound"
+    },
+    "minor": {
+      "name": "Natural Minor",
+      "intervals": [0, 2, 3, 5, 7, 8, 10],
+      "description": "Sad, melancholic sound"
+    },
+    "blues": {
+      "name": "Blues",
+      "intervals": [0, 3, 5, 6, 7, 10],
+      "description": "Bluesy, soulful sound"
+    },
+    "dorian": {
+      "name": "Dorian Mode",
+      "intervals": [0, 2, 3, 5, 7, 9, 10],
+      "description": "Jazz, slightly minor with major 6th"
+    },
+    "phrygian": {
+      "name": "Phrygian Mode",
+      "intervals": [0, 1, 3, 5, 7, 8, 10],
+      "description": "Spanish, exotic sound"
+    },
+    "lydian": {
+      "name": "Lydian Mode",
+      "intervals": [0, 2, 4, 6, 7, 9, 11],
+      "description": "Dreamy, ethereal with raised 4th"
+    },
+    "mixolydian": {
+      "name": "Mixolydian Mode",
+      "intervals": [0, 2, 4, 5, 7, 9, 10],
+      "description": "Rock, blues-rock with flat 7th"
+    },
+    "pentatonic": {
+      "name": "Major Pentatonic",
+      "intervals": [0, 2, 4, 7, 9],
+      "description": "Simple, universal 5-note scale"
+    },
+    "harmonic_minor": {
+      "name": "Harmonic Minor",
+      "intervals": [0, 2, 3, 5, 7, 8, 11],
+      "description": "Classical, Middle Eastern flavor"
+    }
+  }
+}
