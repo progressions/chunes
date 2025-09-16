@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 const blessed = require('blessed');
-const { AudioEngine } = require('./audio/player');
-const { MusicGenerator } = require('./music/generator');
+const { BetterAudioPlayer } = require('./audio/betterPlayer');
+const { SimpleGenerator } = require('./music/simpleGenerator');
 const { UIManager } = require('./ui/display');
 const { ControlHandler } = require('./ui/controls');
 const { LiveMode } = require('./modes/live');
@@ -17,8 +17,8 @@ class ChiptuneGenerator {
         this.isRunning = false;
 
         // Initialize all subsystems
-        this.audioEngine = new AudioEngine();
-        this.musicGenerator = new MusicGenerator();
+        this.audioPlayer = new BetterAudioPlayer();
+        this.simpleGenerator = new SimpleGenerator();
         this.bufferManager = new BufferManager();
         this.sessionManager = new SessionManager();
 
@@ -58,14 +58,9 @@ class ChiptuneGenerator {
             // Restore previous session if exists
             await this.sessionManager.restoreSession(this);
 
-            // Start audio engine
-            await this.audioEngine.initialize();
-
-            // Play a simple test tone to prime the audio
-            this.playTestTone();
-
-            // Start music generation
-            this.musicGenerator.start(this.parameters);
+            // Start audio player
+            await this.audioPlayer.initialize();
+            console.log('Audio initialized');
 
             // Start buffer recording
             this.bufferManager.startRecording();
@@ -94,18 +89,27 @@ class ChiptuneGenerator {
         if (!this.isRunning) return;
 
         try {
-            // Generate continuous audio chunks
-            const audioData = this.audioEngine.generateChunk();
+            // Check for musical events
+            const events = this.simpleGenerator.update();
 
-            // Play the audio
-            this.audioEngine.play(audioData);
+            if (events) {
+                // Play notes on channels
+                if (events.pulse1) {
+                    this.audioPlayer.playNote('pulse1', events.pulse1.frequency, events.pulse1.duration);
+                }
+                if (events.pulse2) {
+                    this.audioPlayer.playNote('pulse2', events.pulse2.frequency, events.pulse2.duration);
+                }
+                if (events.triangle) {
+                    this.audioPlayer.playNote('triangle', events.triangle.frequency, events.triangle.duration);
+                }
+                if (events.noise && events.noise.trigger) {
+                    this.audioPlayer.playNote('noise', 0, events.noise.duration);
+                }
+            }
 
-            // Record to buffer
-            this.bufferManager.record(audioData, this.parameters);
-
-            // Update UI visualizations periodically
+            // Update UI periodically
             if (Date.now() % 100 < 20) {
-                this.uiManager.updateVisualization(audioData);
                 this.uiManager.updateBufferDuration(this.bufferManager.getDuration());
             }
 
@@ -113,8 +117,8 @@ class ChiptuneGenerator {
             console.error('Main loop error:', error);
         }
 
-        // Schedule next iteration more frequently for continuous audio
-        setImmediate(() => this.mainLoop());
+        // Schedule next iteration for music timing
+        setTimeout(() => this.mainLoop(), 20);
     }
 
     setupControls() {
@@ -136,7 +140,10 @@ class ChiptuneGenerator {
 
         // Parameter controls (delegated to current mode)
         this.controlHandler.on('parameterChange', (param, value) => {
-            this.updateParameter(param, value);
+            // Let the active mode handle parameter changes
+            if (this.currentMode === 'live' && this.liveMode) {
+                this.liveMode.handleParameterChange(param, value);
+            }
         });
     }
 
@@ -166,18 +173,14 @@ class ChiptuneGenerator {
 
     updateParameter(param, value) {
         this.parameters[param] = value;
-        this.musicGenerator.updateParameters(this.parameters);
         this.uiManager.updateParameters(this.parameters);
+
+        // Update simple generator
+        if (param === 'tempo' && this.simpleGenerator) {
+            this.simpleGenerator.setTempo(value);
+        }
     }
 
-    playTestTone() {
-        // Play a simple 440Hz test tone to initialize audio
-        const testData = new Float32Array(2048);
-        for (let i = 0; i < testData.length; i++) {
-            testData[i] = Math.sin(2 * Math.PI * 440 * i / 44100) * 0.1;
-        }
-        this.audioEngine.play(testData);
-    }
 
     async shutdown() {
         console.log(chalk.yellow('🛑 Shutting down...'));
@@ -188,7 +191,7 @@ class ChiptuneGenerator {
         await this.sessionManager.saveSession(this);
 
         // Stop audio
-        this.audioEngine.stop();
+        this.audioPlayer.stop();
 
         // Stop recording
         this.bufferManager.stopRecording();

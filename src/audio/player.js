@@ -57,25 +57,36 @@ class AudioEngine {
             this.speaker = new Speaker({
                 channels: this.channels,
                 bitDepth: this.bitDepth,
-                sampleRate: this.sampleRate
+                sampleRate: this.sampleRate,
+                float: false,
+                signed: true,
+                lowWaterMark: 1024,
+                highWaterMark: 4096
             });
 
             this.speaker.on('error', (err) => {
                 console.error('Speaker error:', err);
             });
 
+            this.speaker.on('flush', () => {
+                // Keep the audio stream active
+                if (this.isPlaying) {
+                    const silence = this.generateSilence();
+                    this.speaker.write(silence);
+                }
+            });
+
             this.isPlaying = true;
-
-            // Start channels with initial notes for testing
-            this.mixer.channels.pulse1.playNote('C', 261.63, 1.0, 60);
-            this.mixer.channels.pulse2.playNote('E', 329.63, 1.0, 50);
-            this.mixer.channels.triangle.playNote('C', 130.81, 2.0, 70);
-
             return true;
         } catch (error) {
             console.error('Failed to initialize audio:', error);
             throw error;
         }
+    }
+
+    generateSilence() {
+        const samples = new Float32Array(this.bufferSize);
+        return this.floatToPCM(samples);
     }
 
     play(audioData) {
@@ -159,7 +170,7 @@ class AudioEngine {
 
     generateChunk() {
         // Generate audio chunk from mixer
-        const mixedSamples = this.mixer.mix(this.bufferSize * 4); // Generate larger chunks
+        const mixedSamples = this.mixer.mix(this.bufferSize);
         const compressed = this.compressor.process(mixedSamples, this.sampleRate);
         return compressed;
     }

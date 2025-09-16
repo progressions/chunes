@@ -23,13 +23,14 @@ class SquareWaveOscillator extends Oscillator {
 
     generate(frequency, numSamples) {
         const samples = new Float32Array(numSamples);
-        const phaseIncrement = (frequency * 2) / this.sampleRate;
+        const phaseIncrement = frequency / this.sampleRate;
 
         for (let i = 0; i < numSamples; i++) {
             // Generate square wave based on duty cycle
-            samples[i] = (this.phase % 1) < this.dutyCycle ? 1.0 : -1.0;
+            const phasePosition = this.phase % 1.0;
+            samples[i] = phasePosition < this.dutyCycle ? 0.5 : -0.5; // Moderate amplitude
             this.phase += phaseIncrement;
-            if (this.phase > 1) this.phase -= 1;
+            while (this.phase >= 1.0) this.phase -= 1.0;
         }
 
         return samples;
@@ -39,21 +40,25 @@ class SquareWaveOscillator extends Oscillator {
 class TriangleWaveOscillator extends Oscillator {
     generate(frequency, numSamples) {
         const samples = new Float32Array(numSamples);
-        const phaseIncrement = (frequency * 2) / this.sampleRate;
+        const phaseIncrement = frequency / this.sampleRate;
 
         for (let i = 0; i < numSamples; i++) {
             // Generate triangle wave
-            const p = this.phase % 1;
+            const p = this.phase % 1.0;
+            let sample;
+
             if (p < 0.25) {
-                samples[i] = p * 4;
+                sample = p * 4.0;
             } else if (p < 0.75) {
-                samples[i] = 2 - (p * 4);
+                sample = 2.0 - (p * 4.0);
             } else {
-                samples[i] = (p * 4) - 4;
+                sample = (p * 4.0) - 4.0;
             }
 
+            samples[i] = sample * 0.5; // Moderate amplitude
+
             this.phase += phaseIncrement;
-            if (this.phase > 1) this.phase -= 1;
+            while (this.phase >= 1.0) this.phase -= 1.0;
         }
 
         return samples;
@@ -82,7 +87,7 @@ class NoiseOscillator extends Oscillator {
                 // LFSR-based noise generation (NES-style)
                 const feedback = ((this.lfsr & 0x0001) ^ ((this.lfsr & 0x0002) >> 1)) ? 0x8000 : 0;
                 this.lfsr = (this.lfsr >> 1) | feedback;
-                this.currentValue = (this.lfsr & 0x0001) ? 1.0 : -1.0;
+                this.currentValue = (this.lfsr & 0x0001) ? 0.2 : -0.2; // Reduced amplitude
                 this.counter = 0;
             }
             samples[i] = this.currentValue;

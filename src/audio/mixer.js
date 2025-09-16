@@ -22,7 +22,7 @@ class Channel {
 
     playNote(note, frequency, duration, velocity = 80) {
         this.currentNote = note;
-        this.frequency = frequency;
+        this.frequency = frequency || 440; // Default to A4 if no frequency
         this.noteDuration = duration;
         this.noteStartTime = Date.now();
         this.velocity = velocity / 127; // MIDI velocity to amplitude
@@ -75,7 +75,7 @@ class Mixer {
     constructor(sampleRate = 44100) {
         this.sampleRate = sampleRate;
         this.channels = {};
-        this.masterVolume = 0.5;
+        this.masterVolume = 0.5; // Default master volume
     }
 
     addChannel(id, channel) {

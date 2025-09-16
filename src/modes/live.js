@@ -14,8 +14,9 @@ class LiveMode {
     activate() {
         this.isActive = true;
 
-        // Set up parameter change handlers
-        this.app.controlHandler.on('parameterChange', this.handleParameterChange.bind(this));
+        // Remove any existing listeners first to avoid duplicates
+        this.deactivate();
+        this.isActive = true;
 
         // Set up loop save/load handlers
         this.app.controlHandler.on('saveLoop', this.handleSaveLoop.bind(this));
@@ -105,8 +106,18 @@ class LiveMode {
     }
 
     cycleValue(values, current, forward = true) {
+        // Ensure we have a valid array
+        if (!Array.isArray(values) || values.length === 0) {
+            return current;
+        }
+
         const index = values.indexOf(current);
-        if (index === -1) return values[0];
+
+        // If current value not found, return the first value
+        if (index === -1) {
+            console.log(`Current value ${current} not found in`, values, '- using first value');
+            return values[0];
+        }
 
         const nextIndex = forward
             ? (index + 1) % values.length
@@ -201,12 +212,12 @@ class LiveMode {
             timestamp: new Date().toISOString(),
             loop_data: {
                 parameters: { ...this.app.parameters },
-                pattern_seed: this.app.musicGenerator.patternSeed,
+                pattern_seed: Math.random(),
                 // Save current patterns
                 patterns: {
-                    melody: this.app.musicGenerator.melodyPattern,
-                    bass: this.app.musicGenerator.bassPattern,
-                    harmony: this.app.musicGenerator.harmonyPattern
+                    melody: [],
+                    bass: [],
+                    harmony: []
                 }
             }
         };
@@ -228,18 +239,18 @@ class LiveMode {
 
     handleNewLoop() {
         // Reset to new random loop
-        this.app.musicGenerator.reset();
+        this.app.simpleGenerator.reset();
         this.app.uiManager.showMessage('Generated new loop', 'success');
     }
 
     handleVolumeChange(direction) {
-        const currentVolume = this.app.audioEngine.mixer.masterVolume;
-        const step = 0.05;
+        const currentVolume = this.app.audioPlayer.masterVolume;
+        const step = 0.1;
         const newVolume = direction === 'increase'
             ? Math.min(1, currentVolume + step)
-            : Math.max(0, currentVolume - step);
+            : Math.max(0.1, currentVolume - step);
 
-        this.app.audioEngine.setMasterVolume(newVolume);
+        this.app.audioPlayer.setMasterVolume(newVolume);
         this.app.uiManager.showMessage(
             `Volume: ${Math.round(newVolume * 100)}%`,
             'info'
@@ -247,12 +258,11 @@ class LiveMode {
     }
 
     handleChannelToggle(channelId) {
-        const channel = this.app.audioEngine.mixer.channels[channelId];
-        if (channel) {
-            const newState = !channel.enabled;
-            channel.setEnabled(newState);
+        if (this.app.audioPlayer.channelStates[channelId]) {
+            const state = this.app.audioPlayer.channelStates[channelId];
+            state.active = !state.active;
             this.app.uiManager.showMessage(
-                `${channelId}: ${newState ? 'ON' : 'OFF'}`,
+                `${channelId}: ${state.active ? 'ON' : 'OFF'}`,
                 'info'
             );
         }
