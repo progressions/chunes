@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-09-16T15:50:49.229Z",
+  "parameters": {
+    "genre": "bossa",
+    "key": "A",
+    "scale": "minor",
+    "timeSignature": "3/4",
+    "tempo": 60,
+    "swing": false,
+    "loopLength": 8
+  },
+  "musicState": {
+    "genre": "bossa",
+    "key": "A",
+    "scale": "minor",
+    "tempo": 60,
+    "loopLength": 8,
+    "currentStep": 52,
+    "swing": false,
+    "timeSignature": "3/4"
+  },
+  "bufferStats": {
+    "duration": 0,
+    "dataPoints": 0,
+    "timelineEvents": 0,
+    "memoryUsage": "0.00"
+  }
+}

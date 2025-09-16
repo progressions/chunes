@@ -284,6 +284,9 @@ class HarmonyMode {
             noise: null
         };
 
+        // Calculate step time for note durations
+        const stepTime = (60 / this.app.parameters.tempo) / 4;
+
         // Check each channel for notes at current step
         for (const [channel, pattern] of Object.entries(this.patterns)) {
             const note = pattern[this.currentStep];
@@ -298,7 +301,7 @@ class HarmonyMode {
                         velocity: note.velocity,
                         period: note.period
                     };
-                } else if (channel !== 'noise') {
+                } else if (channel !== 'noise' && note.frequency) {
                     // Note event
                     events[channel] = {
                         frequency: note.frequency,
