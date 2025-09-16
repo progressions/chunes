@@ -117,12 +117,33 @@ class HarmonyMode {
         this.app.screen.key(['p', 'P'], () => this.addRandomNote());
 
         // H key toggle is handled in main.js to avoid conflicts
+
+        // Set up parameter change handler from controlHandler
+        this.parameterHandler = this.handleParameterChange.bind(this);
+        this.app.controlHandler.on('parameterChange', this.parameterHandler);
+
+        // Volume and channel controls
+        this.volumeHandler = this.handleVolumeChange.bind(this);
+        this.channelToggleHandler = this.handleChannelToggle.bind(this);
+        this.app.controlHandler.on('volumeChange', this.volumeHandler);
+        this.app.controlHandler.on('channelToggle', this.channelToggleHandler);
     }
 
     cleanupKeyHandlers() {
         this.app.screen.unkey('[');
         this.app.screen.unkey(']');
         this.app.screen.unkey(['p', 'P']);
+
+        // Clean up parameter handlers
+        if (this.parameterHandler) {
+            this.app.controlHandler.removeListener('parameterChange', this.parameterHandler);
+        }
+        if (this.volumeHandler) {
+            this.app.controlHandler.removeListener('volumeChange', this.volumeHandler);
+        }
+        if (this.channelToggleHandler) {
+            this.app.controlHandler.removeListener('channelToggle', this.channelToggleHandler);
+        }
     }
 
     selectPreviousChannel() {
@@ -342,23 +363,95 @@ class HarmonyMode {
         }
     }
 
-    handleParameterChange(param, value) {
-        // Handle parameter changes that affect H Mode
+    handleParameterChange(param, direction) {
+        // Similar to LiveMode, handle parameter changes
+        const currentValue = this.app.parameters[param];
+        let newValue = currentValue;
+
+        // Arrays of available values (from LiveMode)
+        const availableTempos = [60, 80, 100, 120, 140, 160, 180, 200, 240];
+        const availableGenres = ['soft', 'rock', 'bossa'];
+        const availableKeys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const availableScales = ['major', 'minor', 'blues'];
+        const availableLoopLengths = [4, 8, 16];
+
         switch (param) {
-            case 'key':
-                // Transpose existing patterns
-                this.transposePatterns(value);
-                break;
-
-            case 'loopLength':
-                // Extend or truncate patterns
-                this.adjustPatternLength(value);
-                break;
-
             case 'tempo':
-                // Tempo is handled in update() automatically
+                newValue = this.cycleValue(availableTempos, currentValue, direction === 'increase');
+                break;
+            case 'genre':
+                newValue = this.cycleValue(availableGenres, currentValue, direction === 'next');
+                break;
+            case 'key':
+                const oldKey = currentValue;
+                newValue = this.cycleValue(availableKeys, currentValue, direction === 'next');
+                if (newValue !== oldKey) {
+                    this.transposePatterns(newValue);
+                }
+                break;
+            case 'scale':
+                newValue = this.cycleValue(availableScales, currentValue, direction === 'next');
+                break;
+            case 'loopLength':
+                const oldLength = currentValue;
+                newValue = this.cycleValue(availableLoopLengths, currentValue, direction === 'increase');
+                if (newValue !== oldLength) {
+                    this.adjustPatternLength(newValue);
+                }
+                break;
+            case 'swing':
+                newValue = !currentValue;
+                break;
+            case 'timeSignature':
+                newValue = direction; // Direct value ('3/4' or '4/4')
                 break;
         }
+
+        if (newValue !== currentValue && newValue !== undefined) {
+            this.app.updateParameter(param, newValue);
+
+            // Show parameter change message
+            let displayValue = newValue;
+            if (param === 'tempo') {
+                displayValue = `${newValue} BPM`;
+            } else if (param === 'loopLength') {
+                displayValue = `${newValue} bars`;
+            } else if (param === 'swing') {
+                displayValue = newValue ? 'ON' : 'OFF';
+            }
+
+            this.app.uiManager.showMessage(
+                `${param}: ${displayValue}`,
+                'info'
+            );
+        }
+    }
+
+    cycleValue(values, current, forward = true) {
+        if (!Array.isArray(values) || values.length === 0) {
+            return current;
+        }
+
+        const index = values.indexOf(current);
+        if (index === -1) {
+            return values[0];
+        }
+
+        const nextIndex = forward
+            ? (index + 1) % values.length
+            : (index - 1 + values.length) % values.length;
+
+        return values[nextIndex];
+    }
+
+    handleVolumeChange(direction) {
+        // Pass volume changes to the app
+        this.app.handleVolumeChange(direction);
+    }
+
+    handleChannelToggle(channel) {
+        // Pass channel toggles to the app
+        this.app.toggleChannelMute(channel);
     }
 
     transposePatterns(newKey) {
