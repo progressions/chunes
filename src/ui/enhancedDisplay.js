@@ -278,8 +278,8 @@ class EnhancedUIManager {
             const selectedType = channelTypes[this.harmonySelectedChannel - 1];
 
             if (this.insertMode && this.queuedNote) {
-                // Show queued note in insert mode
-                line2 += `  {#a29bfe-fg}│{/#a29bfe-fg}  {#fab1a0-fg}Selected:{/#fab1a0-fg} {bold}{#ff6b9d-fg}Ch${this.harmonySelectedChannel}{/#ff6b9d-fg}{/bold}  {#a29bfe-fg}│{/#a29bfe-fg}  {#fab1a0-fg}Queued:{/#fab1a0-fg} {bold}{#00b894-fg}${this.queuedNote.name}{/#00b894-fg}{/bold}  {#a29bfe-fg}│{/#a29bfe-fg}  {#ff6b9d-fg}[P] Insert{/#ff6b9d-fg}`;
+                // Show queued note in insert mode with U key for clear
+                line2 += `  {#a29bfe-fg}│{/#a29bfe-fg}  {#fab1a0-fg}Ch:{/#fab1a0-fg} {bold}{#ff6b9d-fg}${this.harmonySelectedChannel}{/#ff6b9d-fg}{/bold}  {#a29bfe-fg}│{/#a29bfe-fg}  {#fab1a0-fg}Note:{/#fab1a0-fg} {bold}{#00b894-fg}${this.queuedNote.name}{/#00b894-fg}{/bold}  {#a29bfe-fg}│{/#a29bfe-fg}  {#ff6b9d-fg}[P]{/#ff6b9d-fg} Add  {#fdcb6e-fg}[U]{/#fdcb6e-fg} Clear`;
             } else {
                 // Normal H mode display
                 line2 += `  {#fab1a0-fg}Selected:{/#fab1a0-fg} {bold}{#ff6b9d-fg}Ch${this.harmonySelectedChannel} (${selectedType}){/#ff6b9d-fg}{/bold}`;

@@ -158,6 +158,13 @@ class HarmonyMode {
             }
         });
 
+        // U key clears note at current position (only in Insert Mode)
+        this.app.screen.key(['u', 'U'], () => {
+            if (this.insertMode) {
+                this.clearNoteAtPosition();
+            }
+        });
+
         // I key toggles Insert Mode
         this.app.screen.key(['i', 'I'], () => this.toggleInsertMode());
 
@@ -185,6 +192,7 @@ class HarmonyMode {
         this.app.screen.unkey('[');
         this.app.screen.unkey(']');
         this.app.screen.unkey(['p', 'P']);
+        this.app.screen.unkey(['u', 'U']);
         this.app.screen.unkey(['i', 'I']);
         this.app.screen.unkey('escape');
 
@@ -513,7 +521,7 @@ class HarmonyMode {
         this.queuedNote = this.availableNotes[this.selectedNoteIndex];
 
         this.app.uiManager.showMessage(
-            'Insert Mode: Use [ ] to select note, P to insert, I or Esc to exit',
+            'Insert Mode: [ ] select note, P insert, U clear, I or Esc to exit',
             'info'
         );
 
@@ -652,6 +660,24 @@ class HarmonyMode {
         );
 
         // Stay in insert mode after adding note
+    }
+
+    clearNoteAtPosition() {
+        // Clear any note at the current position
+        const channelId = this.channelMap[this.selectedChannel];
+
+        if (this.patterns[channelId]) {
+            // Set the position to null to create silence
+            this.patterns[channelId][this.currentStep] = null;
+
+            this.app.uiManager.showMessage(
+                `Cleared note at position ${this.currentStep}`,
+                'info'
+            );
+
+            // Update display to show the cleared position
+            this.updateDisplay();
+        }
     }
 
     updateDisplay() {
