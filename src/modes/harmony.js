@@ -52,7 +52,7 @@ class HarmonyMode {
                 frequency: rootFreq,
                 note: this.app.parameters.key + '4',
                 velocity: 70,
-                duration: noteInterval // Duration in steps
+                duration: noteInterval === 4 ? 0.5 : 1 // Staccato: 0.5 beat for quarters, 1 beat for halves
             };
         }
 
@@ -184,7 +184,7 @@ class HarmonyMode {
                 frequency: randomNote.frequency,
                 note: randomNote.name,
                 velocity: 60 + Math.random() * 30,
-                duration: 4 // Quarter note duration
+                duration: 0.5 // Half a beat for staccato quarter notes
             };
         }
 
@@ -302,11 +302,12 @@ class HarmonyMode {
                         period: note.period
                     };
                 } else if (channel !== 'noise' && note.frequency) {
-                    // Note event
+                    // Note event - duration is in beats, convert to seconds
+                    // 1 beat = 1 quarter note = 4 steps * stepTime
                     events[channel] = {
                         frequency: note.frequency,
                         note: note.note,
-                        duration: stepTime * note.duration,
+                        duration: stepTime * 4 * note.duration, // Convert beats to seconds
                         velocity: note.velocity
                     };
                 }
