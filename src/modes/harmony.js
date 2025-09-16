@@ -19,6 +19,12 @@ class HarmonyMode {
         this.currentStep = 0;
         this.lastStepTime = Date.now() / 1000;
 
+        // I Mode (Insert Note mode) state
+        this.insertMode = false;
+        this.availableNotes = [];
+        this.selectedNoteIndex = 0;
+        this.queuedNote = null;
+
         // Musical parameters
         this.octaveRange = 2; // Two octave range for random notes
 
@@ -126,12 +132,41 @@ class HarmonyMode {
     }
 
     setupKeyHandlers() {
-        // Channel selection
-        this.app.screen.key('[', () => this.selectPreviousChannel());
-        this.app.screen.key(']', () => this.selectNextChannel());
+        // Context-sensitive [ and ] keys
+        this.app.screen.key('[', () => {
+            if (this.insertMode) {
+                this.selectPreviousNote();
+            } else {
+                this.selectPreviousChannel();
+            }
+        });
 
-        // Add note
-        this.app.screen.key(['p', 'P'], () => this.addRandomNote());
+        this.app.screen.key(']', () => {
+            if (this.insertMode) {
+                this.selectNextNote();
+            } else {
+                this.selectNextChannel();
+            }
+        });
+
+        // P key behavior changes based on mode
+        this.app.screen.key(['p', 'P'], () => {
+            if (this.insertMode) {
+                this.insertQueuedNote();
+            } else {
+                this.addRandomNote();
+            }
+        });
+
+        // I key toggles Insert Mode
+        this.app.screen.key(['i', 'I'], () => this.toggleInsertMode());
+
+        // Escape key exits Insert Mode
+        this.app.screen.key('escape', () => {
+            if (this.insertMode) {
+                this.exitInsertMode();
+            }
+        });
 
         // H key toggle is handled in main.js to avoid conflicts
 
@@ -150,6 +185,8 @@ class HarmonyMode {
         this.app.screen.unkey('[');
         this.app.screen.unkey(']');
         this.app.screen.unkey(['p', 'P']);
+        this.app.screen.unkey(['i', 'I']);
+        this.app.screen.unkey('escape');
 
         // Clean up parameter handlers
         if (this.parameterHandler) {
@@ -444,10 +481,170 @@ class HarmonyMode {
         return events;
     }
 
+    toggleInsertMode() {
+        if (this.insertMode) {
+            this.exitInsertMode();
+        } else {
+            this.enterInsertMode();
+        }
+    }
+
+    enterInsertMode() {
+        this.insertMode = true;
+
+        // Generate available notes for current scale
+        this.generateAvailableNotes();
+
+        // Start at root note in middle octave
+        this.selectedNoteIndex = this.findRootNoteIndex(4);
+        this.queuedNote = this.availableNotes[this.selectedNoteIndex];
+
+        this.app.uiManager.showMessage(
+            'Insert Mode: Use [ ] to select note, P to insert, I or Esc to exit',
+            'info'
+        );
+
+        this.updateDisplay();
+    }
+
+    exitInsertMode() {
+        this.insertMode = false;
+        this.queuedNote = null;
+
+        this.app.uiManager.showMessage(
+            'Exited Insert Mode',
+            'info'
+        );
+
+        this.updateDisplay();
+    }
+
+    generateAvailableNotes() {
+        const scales = {
+            major: [0, 2, 4, 5, 7, 9, 11],
+            minor: [0, 2, 3, 5, 7, 8, 10],
+            blues: [0, 3, 5, 6, 7, 10]
+        };
+
+        const scale = scales[this.app.parameters.scale] || scales.major;
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const keyIndex = noteNames.indexOf(this.app.parameters.key);
+
+        this.availableNotes = [];
+
+        // Generate notes across octaves 2-6
+        for (let octave = 2; octave <= 6; octave++) {
+            scale.forEach(interval => {
+                const noteIndex = (keyIndex + interval) % 12;
+                const noteName = noteNames[noteIndex];
+                const frequency = this.getFrequencyForNote(noteName, octave);
+
+                this.availableNotes.push({
+                    name: noteName + octave,
+                    noteName: noteName,
+                    octave: octave,
+                    frequency: frequency,
+                    interval: interval
+                });
+            });
+        }
+    }
+
+    getFrequencyForNote(noteName, octave) {
+        const noteFrequencies = {
+            'C': 16.35,
+            'C#': 17.32,
+            'D': 18.35,
+            'D#': 19.45,
+            'E': 20.60,
+            'F': 21.83,
+            'F#': 23.12,
+            'G': 24.50,
+            'G#': 25.96,
+            'A': 27.50,
+            'A#': 29.14,
+            'B': 30.87
+        };
+
+        // Base frequencies are for octave 0, multiply by 2 for each octave
+        return noteFrequencies[noteName] * Math.pow(2, octave);
+    }
+
+    findRootNoteIndex(preferredOctave) {
+        // Find the root note (interval 0) at the preferred octave
+        const index = this.availableNotes.findIndex(note =>
+            note.interval === 0 && note.octave === preferredOctave
+        );
+
+        // Fallback to any root note if preferred octave not found
+        return index >= 0 ? index : this.availableNotes.findIndex(note => note.interval === 0);
+    }
+
+    selectPreviousNote() {
+        if (this.selectedNoteIndex > 0) {
+            this.selectedNoteIndex--;
+            this.queuedNote = this.availableNotes[this.selectedNoteIndex];
+
+            this.app.uiManager.showMessage(
+                `Selected: ${this.queuedNote.name}`,
+                'info'
+            );
+
+            this.updateDisplay();
+        }
+    }
+
+    selectNextNote() {
+        if (this.selectedNoteIndex < this.availableNotes.length - 1) {
+            this.selectedNoteIndex++;
+            this.queuedNote = this.availableNotes[this.selectedNoteIndex];
+
+            this.app.uiManager.showMessage(
+                `Selected: ${this.queuedNote.name}`,
+                'info'
+            );
+
+            this.updateDisplay();
+        }
+    }
+
+    insertQueuedNote() {
+        if (!this.queuedNote) return;
+
+        // Insert note at current position
+        const channelId = this.channelMap[this.selectedChannel];
+
+        if (channelId === 'noise') {
+            // For noise channel, add drum hit
+            this.patterns[channelId][this.currentStep] = {
+                trigger: true,
+                type: Math.random() > 0.5 ? 'kick' : 'snare',
+                duration: 0.2,
+                velocity: 80 + Math.random() * 20,
+                period: Math.random() > 0.5 ? 15 : 4
+            };
+        } else {
+            // For tonal channels, insert the queued note
+            this.patterns[channelId][this.currentStep] = {
+                frequency: this.queuedNote.frequency,
+                note: this.queuedNote.name,
+                velocity: 70 + Math.random() * 20,
+                duration: 0.5 // Half a beat for staccato notes
+            };
+        }
+
+        this.app.uiManager.showMessage(
+            `Inserted ${this.queuedNote.name} at position ${this.currentStep}`,
+            'success'
+        );
+
+        // Stay in insert mode after adding note
+    }
+
     updateDisplay() {
         // This will be called to update channel selection indicator
         if (this.app.uiManager && this.app.uiManager.updateHarmonyDisplay) {
-            this.app.uiManager.updateHarmonyDisplay(this.selectedChannel);
+            this.app.uiManager.updateHarmonyDisplay(this.selectedChannel, this.insertMode, this.queuedNote, this.currentStep);
         }
     }
 
@@ -498,12 +695,25 @@ class HarmonyMode {
             case 'key':
                 const oldKey = currentValue;
                 newValue = this.cycleValue(availableKeys, currentValue, direction === 'next');
-                if (newValue !== oldKey) {
-                    this.transposePatterns(newValue);
+                // Don't transpose patterns when key changes - per user requirement
+                // Only regenerate available notes if in insert mode
+                if (newValue !== oldKey && this.insertMode) {
+                    this.generateAvailableNotes();
+                    // Try to find similar note in new scale
+                    this.selectedNoteIndex = Math.min(this.selectedNoteIndex, this.availableNotes.length - 1);
+                    this.queuedNote = this.availableNotes[this.selectedNoteIndex];
                 }
                 break;
             case 'scale':
+                const oldScale = currentValue;
                 newValue = this.cycleValue(availableScales, currentValue, direction === 'next');
+                // Regenerate available notes if scale changes and we're in insert mode
+                if (newValue !== oldScale && this.insertMode) {
+                    this.generateAvailableNotes();
+                    // Try to maintain position in list
+                    this.selectedNoteIndex = Math.min(this.selectedNoteIndex, this.availableNotes.length - 1);
+                    this.queuedNote = this.availableNotes[this.selectedNoteIndex];
+                }
                 break;
             case 'loopLength':
                 const oldLength = currentValue;
@@ -537,6 +747,9 @@ class HarmonyMode {
                 `${param}: ${displayValue}`,
                 'info'
             );
+
+            // Update display to show changes
+            this.updateDisplay();
         }
     }
 

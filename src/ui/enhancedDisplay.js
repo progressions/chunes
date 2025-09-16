@@ -235,7 +235,7 @@ class EnhancedUIManager {
         // Use the pastel colors from the palette
         let modeDisplay = 'LIVE';
         if (this.mode === 'harmony') {
-            modeDisplay = 'H-MODE';
+            modeDisplay = this.insertMode ? 'INSERT' : 'H-MODE';
         } else if (this.mode === 'buffer') {
             modeDisplay = 'BUFFER';
         }
@@ -243,11 +243,18 @@ class EnhancedUIManager {
         const line1 = `  {#fab1a0-fg}Genre:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.genre}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Key:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.key} ${params.scale}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Tempo:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.tempo} BPM{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Time:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.timeSignature}{/#74b9ff-fg}{/bold}`;
         let line2 = `  {#fab1a0-fg}Loop:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.loopLength} bars{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Swing:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.swing ? 'ON' : 'OFF'}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Mode:{/#fab1a0-fg} {bold}{#00b894-fg}${modeDisplay}{/#00b894-fg}{/bold}`;
 
-        // Add selected channel info in H Mode
-        if (this.mode === 'harmony' && this.harmonySelectedChannel) {
+        // Add context-specific info
+        if (this.mode === 'harmony') {
             const channelTypes = ['Lead', 'Harmony', 'Bass', 'Drums'];
             const selectedType = channelTypes[this.harmonySelectedChannel - 1];
-            line2 += `  {#fab1a0-fg}Selected:{/#fab1a0-fg} {bold}{#ff6b9d-fg}Ch${this.harmonySelectedChannel} (${selectedType}){/#ff6b9d-fg}{/bold}`;
+
+            if (this.insertMode && this.queuedNote) {
+                // Show queued note in insert mode
+                line2 += `  {#a29bfe-fg}│{/#a29bfe-fg}  {#fab1a0-fg}Selected:{/#fab1a0-fg} {bold}{#ff6b9d-fg}Ch${this.harmonySelectedChannel}{/#ff6b9d-fg}{/bold}  {#a29bfe-fg}│{/#a29bfe-fg}  {#fab1a0-fg}Queued:{/#fab1a0-fg} {bold}{#00b894-fg}${this.queuedNote.name}{/#00b894-fg}{/bold}  {#a29bfe-fg}│{/#a29bfe-fg}  {#ff6b9d-fg}[P] Insert{/#ff6b9d-fg}`;
+            } else {
+                // Normal H mode display
+                line2 += `  {#fab1a0-fg}Selected:{/#fab1a0-fg} {bold}{#ff6b9d-fg}Ch${this.harmonySelectedChannel} (${selectedType}){/#ff6b9d-fg}{/bold}`;
+            }
         }
 
         if (this.boxes.parameters) {
@@ -286,8 +293,15 @@ class EnhancedUIManager {
             content = ` {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo  {magenta-fg}[{/magenta-fg}{green-fg}G{/green-fg}{magenta-fg}]{/magenta-fg} Genre  {magenta-fg}[{/magenta-fg}{green-fg}K{/green-fg}{magenta-fg}]{/magenta-fg} Key  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Scale  {magenta-fg}[{/magenta-fg}{green-fg}L{/green-fg}{magenta-fg}]{/magenta-fg} Loop  {magenta-fg}[{/magenta-fg}{green-fg}W{/green-fg}{magenta-fg}]{/magenta-fg} Swing\n` +
                   ` {magenta-fg}[{/magenta-fg}{green-fg}H{/green-fg}{magenta-fg}]{/magenta-fg} H-Mode  {magenta-fg}[{/magenta-fg}{green-fg}B{/green-fg}{magenta-fg}]{/magenta-fg} Buffer  {magenta-fg}[{/magenta-fg}{green-fg}Ctrl+S{/green-fg}{magenta-fg}]{/magenta-fg} Save  {magenta-fg}[{/magenta-fg}{green-fg}Ctrl+L{/green-fg}{magenta-fg}]{/magenta-fg} Load  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
         } else if (this.mode === 'harmony') {
-            content = ` {magenta-fg}[{/magenta-fg}{green-fg}[{/green-fg}{magenta-fg}]{/magenta-fg} {magenta-fg}[{/magenta-fg}{green-fg}]{/green-fg}{magenta-fg}]{/magenta-fg} Select  {magenta-fg}[{/magenta-fg}{green-fg}P{/green-fg}{magenta-fg}]{/magenta-fg} Add Note  {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo  {magenta-fg}[{/magenta-fg}{green-fg}K{/green-fg}{magenta-fg}]{/magenta-fg} Key  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Scale\n` +
-                  ` {magenta-fg}[{/magenta-fg}{green-fg}H{/green-fg}{magenta-fg}]{/magenta-fg} Exit H-Mode  {magenta-fg}[{/magenta-fg}{green-fg}B{/green-fg}{magenta-fg}]{/magenta-fg} Buffer  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
+            if (this.insertMode) {
+                // Insert mode controls
+                content = ` {yellow-fg}INSERT MODE:{/yellow-fg}  {magenta-fg}[{/magenta-fg}{green-fg}[{/green-fg}{magenta-fg}]{/magenta-fg} {magenta-fg}[{/magenta-fg}{green-fg}]{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Select Note{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}P{/green-fg}{magenta-fg}]{/magenta-fg} {cyan-fg}Insert Note{/cyan-fg}  {magenta-fg}[{/magenta-fg}{green-fg}I{/green-fg}{magenta-fg}]{/magenta-fg} Exit Insert  {magenta-fg}[{/magenta-fg}{green-fg}Esc{/green-fg}{magenta-fg}]{/magenta-fg} Cancel\n` +
+                      ` {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo  {magenta-fg}[{/magenta-fg}{green-fg}K{/green-fg}{magenta-fg}]{/magenta-fg} Key  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Scale  {magenta-fg}[{/magenta-fg}{green-fg}H{/green-fg}{magenta-fg}]{/magenta-fg} Exit H-Mode  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
+            } else {
+                // Normal H mode controls
+                content = ` {magenta-fg}[{/magenta-fg}{green-fg}[{/green-fg}{magenta-fg}]{/magenta-fg} {magenta-fg}[{/magenta-fg}{green-fg}]{/green-fg}{magenta-fg}]{/magenta-fg} Select Channel  {magenta-fg}[{/magenta-fg}{green-fg}P{/green-fg}{magenta-fg}]{/magenta-fg} Add Random  {magenta-fg}[{/magenta-fg}{green-fg}I{/green-fg}{magenta-fg}]{/magenta-fg} Insert Mode  {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo\n` +
+                      ` {magenta-fg}[{/magenta-fg}{green-fg}K{/green-fg}{magenta-fg}]{/magenta-fg} Key  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Scale  {magenta-fg}[{/magenta-fg}{green-fg}H{/green-fg}{magenta-fg}]{/magenta-fg} Exit H-Mode  {magenta-fg}[{/magenta-fg}{green-fg}B{/green-fg}{magenta-fg}]{/magenta-fg} Buffer  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
+            }
         } else if (this.mode === 'buffer') {
             content = ` {magenta-fg}[{/magenta-fg}{green-fg}←/→{/green-fg}{magenta-fg}]{/magenta-fg} Seek  {magenta-fg}[{/magenta-fg}{green-fg}Space{/green-fg}{magenta-fg}]{/magenta-fg} Play  {magenta-fg}[{/magenta-fg}{green-fg}Enter{/green-fg}{magenta-fg}]{/magenta-fg} Mark  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Save  {magenta-fg}[{/magenta-fg}{green-fg}ESC{/green-fg}{magenta-fg}]{/magenta-fg} Live  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
         }
@@ -362,20 +376,65 @@ class EnhancedUIManager {
             // Apply background highlight for selected channel in H Mode
             if (isSelected) {
                 // Dark blue background with mint green channel name
-                content = `${chalk.bgHex('#0f3460').hex('#00b894')(channelNames[channelIndex])} ${this.getFlowVisualization(channelIndex)}`;
+                content = `${chalk.bgHex('#0f3460').hex('#00b894')(channelNames[channelIndex])} ${this.getFlowVisualizationWithPlayhead(channelIndex)}`;
                 content += ` ${chalk.hex('#ff6b9d')('←')}`;  // Hot pink arrow
             } else {
                 // Normal display for unselected channels
-                content = `${chalk.hex(channelColors[channelIndex])(channelNames[channelIndex])} ${this.getFlowVisualization(channelIndex)}`;
+                content = `${chalk.hex(channelColors[channelIndex])(channelNames[channelIndex])} ${this.getFlowVisualizationWithPlayhead(channelIndex)}`;
             }
 
             this.boxes[`channel${channelIndex + 1}`].setContent(content);
         }
     }
 
-    updateHarmonyDisplay(selectedChannel) {
+    getFlowVisualizationWithPlayhead(channelIndex) {
+        const buffer = this.flowBuffers[Object.keys(this.flowBuffers)[channelIndex]];
+        const width = Math.min(60, this.termSize.width - 10);
+
+        // Apply gradient coloring with playhead indicator
+        let result = '';
+        for (let i = 0; i < width; i++) {
+            const char = buffer[i] || ' ';
+            const color = this.gradientColors[i % this.gradientColors.length];
+
+            // Show playhead caret at current position
+            if (this.mode === 'harmony' && this.currentLoopPosition !== undefined) {
+                const scaledPosition = Math.floor((this.currentLoopPosition / this.totalLoopSteps) * width);
+                if (i === scaledPosition) {
+                    // Show playhead with preview indicator
+                    if (this.insertMode && this.harmonySelectedChannel === (channelIndex + 1)) {
+                        result += chalk.hex('#00b894').bold('▼'); // Mint green caret for insert preview
+                    } else {
+                        result += chalk.hex('#fdcb6e').bold('▶'); // Yellow playhead
+                    }
+                } else {
+                    result += chalk.hex(color)(char);
+                }
+            } else {
+                result += chalk.hex(color)(char);
+            }
+        }
+
+        return result;
+    }
+
+    updateHarmonyDisplay(selectedChannel, insertMode = false, queuedNote = null, currentStep = 0) {
         this.harmonySelectedChannel = selectedChannel;
-        // Trigger update for all channels to show/hide selection
+        this.insertMode = insertMode;
+        this.queuedNote = queuedNote;
+
+        // Calculate current position for playhead
+        const loopLength = this.parameters.loopLength || 8;
+        this.totalLoopSteps = loopLength * 16; // 16 steps per bar
+        this.currentLoopPosition = currentStep;
+
+        // Update parameter display to show insert mode status
+        this.updateParameterDisplay();
+
+        // Update control hints for context-sensitive controls
+        this.updateControlHints();
+
+        // Trigger update for all channels to show/hide selection and playhead
         for (let i = 0; i < 4; i++) {
             this.updateChannelDisplay(i);
         }
