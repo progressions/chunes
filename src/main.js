@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const blessed = require('blessed');
-const { ImprovedAudioPlayer } = require('./audio/improvedPlayer');
+const { ContinuousAudioPlayer } = require('./audio/continuousPlayer');
 const { ProceduralGenerator } = require('./music/proceduralGenerator');
 const { EnhancedUIManager } = require('./ui/enhancedDisplay');
 const { ControlHandler } = require('./ui/controls');
@@ -17,7 +17,7 @@ class ChiptuneGenerator {
         this.isRunning = false;
 
         // Initialize all subsystems
-        this.audioPlayer = new ImprovedAudioPlayer();
+        this.audioPlayer = new ContinuousAudioPlayer();
         this.musicGenerator = new ProceduralGenerator();
         this.bufferManager = new BufferManager();
         this.sessionManager = new SessionManager();
