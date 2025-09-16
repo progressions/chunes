@@ -13,12 +13,21 @@ class ContinuousAudioPlayer {
         this.speaker = null;
         this.isPlaying = false;
         this.masterVolume = 0.5;
+        this.warmth = 50; // Default warmth at 50%
 
         // Buffer queue for continuous playback
         this.bufferQueue = [];
         this.maxQueueSize = 32;
         this.minQueueSize = 4; // Start playing after this many buffers
         this.isWriting = false;
+
+        // Low-pass filter state for warmth effect
+        this.filterStates = {
+            pulse1: { prev: 0 },
+            pulse2: { prev: 0 },
+            triangle: { prev: 0 },
+            noise: { prev: 0 }
+        };
 
         // Create oscillators
         this.oscillators = {
@@ -143,10 +152,12 @@ class ContinuousAudioPlayer {
 
         // Generate each channel
         if (this.channelStates.pulse1.active && this.channelStates.pulse1.freq > 0) {
-            const pulse1 = this.oscillators.pulse1.generate(
+            let pulse1 = this.oscillators.pulse1.generate(
                 this.channelStates.pulse1.freq,
                 this.frameSize
             );
+            // Apply warmth filtering
+            pulse1 = this.applyWarmthFilter(pulse1, 'pulse1');
             for (let i = 0; i < this.frameSize; i++) {
                 samples[i] += pulse1[i] * this.channelStates.pulse1.volume;
             }
@@ -154,10 +165,12 @@ class ContinuousAudioPlayer {
         }
 
         if (this.channelStates.pulse2.active && this.channelStates.pulse2.freq > 0) {
-            const pulse2 = this.oscillators.pulse2.generate(
+            let pulse2 = this.oscillators.pulse2.generate(
                 this.channelStates.pulse2.freq,
                 this.frameSize
             );
+            // Apply warmth filtering
+            pulse2 = this.applyWarmthFilter(pulse2, 'pulse2');
             for (let i = 0; i < this.frameSize; i++) {
                 samples[i] += pulse2[i] * this.channelStates.pulse2.volume;
             }
@@ -165,10 +178,14 @@ class ContinuousAudioPlayer {
         }
 
         if (this.channelStates.triangle.active && this.channelStates.triangle.freq > 0) {
-            const triangle = this.oscillators.triangle.generate(
+            let triangle = this.oscillators.triangle.generate(
                 this.channelStates.triangle.freq,
                 this.frameSize
             );
+            // Apply lighter warmth filtering to triangle (already smoother)
+            if (this.warmth > 50) {
+                triangle = this.applyWarmthFilter(triangle, 'triangle');
+            }
             for (let i = 0; i < this.frameSize; i++) {
                 samples[i] += triangle[i] * this.channelStates.triangle.volume;
             }
@@ -176,7 +193,11 @@ class ContinuousAudioPlayer {
         }
 
         if (this.channelStates.noise.active) {
-            const noise = this.oscillators.noise.generate(this.frameSize);
+            let noise = this.oscillators.noise.generate(this.frameSize);
+            // Apply warmth filtering to noise
+            if (this.warmth > 30) {
+                noise = this.applyWarmthFilter(noise, 'noise');
+            }
             for (let i = 0; i < this.frameSize; i++) {
                 samples[i] += noise[i] * this.channelStates.noise.volume;
             }
@@ -225,6 +246,39 @@ class ContinuousAudioPlayer {
         if (this.channelStates[channel]) {
             this.channelStates[channel].volume = Math.max(0, Math.min(1, volume));
         }
+    }
+
+    setWarmth(value) {
+        this.warmth = Math.max(0, Math.min(100, value));
+    }
+
+    applyWarmthFilter(samples, channel) {
+        // Apply low-pass filter based on warmth level
+        // 0% warmth = no filtering (harsh)
+        // 100% warmth = heavy filtering (warm/soft)
+
+        if (this.warmth === 0) {
+            return samples; // No filtering for harsh sound
+        }
+
+        // Calculate filter cutoff based on warmth
+        // Higher warmth = lower cutoff frequency
+        const cutoffFreq = 8000 - (this.warmth * 60); // 8000Hz at 0% to 2000Hz at 100%
+        const RC = 1.0 / (cutoffFreq * 2 * Math.PI);
+        const dt = 1.0 / this.sampleRate;
+        const alpha = dt / (RC + dt);
+
+        const filtered = new Float32Array(samples.length);
+        let prev = this.filterStates[channel].prev || 0;
+
+        for (let i = 0; i < samples.length; i++) {
+            // Simple one-pole low-pass filter
+            prev = prev + alpha * (samples[i] - prev);
+            filtered[i] = prev;
+        }
+
+        this.filterStates[channel].prev = prev;
+        return filtered;
     }
 
     stop() {

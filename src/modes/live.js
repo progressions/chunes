@@ -94,6 +94,15 @@ class LiveMode {
                 newValue = !currentValue;
                 break;
 
+            case 'warmth':
+                // Warmth increases/decreases by 10% increments (0-100)
+                if (direction === 'increase') {
+                    newValue = Math.min(100, (currentValue || 50) + 10);
+                } else if (direction === 'decrease') {
+                    newValue = Math.max(0, (currentValue || 50) - 10);
+                }
+                break;
+
             case 'timeSignature':
                 newValue = direction; // Direct value ('3/4' or '4/4')
                 break;
@@ -113,6 +122,8 @@ class LiveMode {
                 displayValue = `${newValue} bars`;
             } else if (param === 'swing') {
                 displayValue = newValue ? 'ON' : 'OFF';
+            } else if (param === 'warmth') {
+                displayValue = `${newValue}%`;
             }
 
             this.app.uiManager.showMessage(

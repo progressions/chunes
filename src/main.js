@@ -46,7 +46,8 @@ class ChiptuneGenerator {
             timeSignature: '4/4',
             tempo: 120,
             swing: false,
-            loopLength: 8
+            loopLength: 8,
+            warmth: 50  // New warmth parameter (0-100%)
         };
 
         // Bind controls
@@ -263,6 +264,12 @@ class ChiptuneGenerator {
                     break;
                 case 'swing':
                     this.musicGenerator.setSwing(value);
+                    break;
+                case 'warmth':
+                    // Update warmth in audio player for filtering
+                    if (this.audioPlayer) {
+                        this.audioPlayer.setWarmth(value);
+                    }
                     break;
                 case 'timeSignature':
                     this.musicGenerator.setTimeSignature(value);

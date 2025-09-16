@@ -52,9 +52,10 @@ class ControlHandler extends EventEmitter {
             this.emit('loadLoop');
         });
 
-        // Swing
-        this.screen.key(['w', 'W'], () => {
-            this.emit('parameterChange', 'swing', 'toggle');
+        // Warmth (replaces swing on W key)
+        this.screen.key(['w', 'S-w'], (ch, key) => {
+            const direction = key && key.shift ? 'decrease' : 'increase';
+            this.emit('parameterChange', 'warmth', direction);
         });
 
         // Time signature

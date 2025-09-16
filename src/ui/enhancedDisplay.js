@@ -298,7 +298,7 @@ class EnhancedUIManager {
         }
 
         const line1 = `  {#fab1a0-fg}Genre:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.genre}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Key:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.key} ${params.scale}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Tempo:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.tempo} BPM{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Time:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.timeSignature}{/#74b9ff-fg}{/bold}`;
-        let line2 = `  {#fab1a0-fg}Loop:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.loopLength} bars{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Swing:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.swing ? 'ON' : 'OFF'}{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Mode:{/#fab1a0-fg} {bold}{#00b894-fg}${modeDisplay}{/#00b894-fg}{/bold}`;
+        let line2 = `  {#fab1a0-fg}Loop:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.loopLength} bars{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Warmth:{/#fab1a0-fg} {bold}{#74b9ff-fg}${params.warmth || 50}%{/#74b9ff-fg}{/bold}  {#fab1a0-fg}Mode:{/#fab1a0-fg} {bold}{#00b894-fg}${modeDisplay}{/#00b894-fg}{/bold}`;
 
         // Add context-specific info
         if (this.mode === 'harmony') {
@@ -349,7 +349,7 @@ class EnhancedUIManager {
     updateControlHints() {
         let content = '';
         if (this.mode === 'live') {
-            content = ` {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo  {magenta-fg}[{/magenta-fg}{green-fg}G{/green-fg}{magenta-fg}]{/magenta-fg} Genre  {magenta-fg}[{/magenta-fg}{green-fg}K{/green-fg}{magenta-fg}]{/magenta-fg} Key  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Scale  {magenta-fg}[{/magenta-fg}{green-fg}L{/green-fg}{magenta-fg}]{/magenta-fg} Loop  {magenta-fg}[{/magenta-fg}{green-fg}W{/green-fg}{magenta-fg}]{/magenta-fg} Swing\n` +
+            content = ` {magenta-fg}[{/magenta-fg}{green-fg}T{/green-fg}{magenta-fg}]{/magenta-fg} Tempo  {magenta-fg}[{/magenta-fg}{green-fg}G{/green-fg}{magenta-fg}]{/magenta-fg} Genre  {magenta-fg}[{/magenta-fg}{green-fg}K{/green-fg}{magenta-fg}]{/magenta-fg} Key  {magenta-fg}[{/magenta-fg}{green-fg}S{/green-fg}{magenta-fg}]{/magenta-fg} Scale  {magenta-fg}[{/magenta-fg}{green-fg}L{/green-fg}{magenta-fg}]{/magenta-fg} Loop  {magenta-fg}[{/magenta-fg}{green-fg}W{/green-fg}{magenta-fg}]{/magenta-fg} Warmth\n` +
                   ` {magenta-fg}[{/magenta-fg}{green-fg}H{/green-fg}{magenta-fg}]{/magenta-fg} H-Mode  {magenta-fg}[{/magenta-fg}{green-fg}B{/green-fg}{magenta-fg}]{/magenta-fg} Buffer  {magenta-fg}[{/magenta-fg}{green-fg}Ctrl+S{/green-fg}{magenta-fg}]{/magenta-fg} Save  {magenta-fg}[{/magenta-fg}{green-fg}Ctrl+L{/green-fg}{magenta-fg}]{/magenta-fg} Load  {magenta-fg}[{/magenta-fg}{green-fg}Q{/green-fg}{magenta-fg}]{/magenta-fg} Quit`;
         } else if (this.mode === 'harmony') {
             if (this.insertMode) {
