@@ -478,12 +478,12 @@ class HarmonyMode {
 
             // Only advance if not paused
             if (!this.isPaused) {
-                // Get events for current step
-                const events = this.getCurrentStepEvents();
-
-                // Advance step
+                // Advance step FIRST so note plays when it reaches the playhead
                 const totalSteps = this.app.parameters.loopLength * 16;
                 this.currentStep = (this.currentStep + 1) % totalSteps;
+
+                // Get events for the NEW current step (at playhead position)
+                const events = this.getCurrentStepEvents();
 
                 // Update display to show current playhead position
                 this.updateDisplay();
