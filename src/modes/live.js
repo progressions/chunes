@@ -239,7 +239,7 @@ class LiveMode {
 
     handleNewLoop() {
         // Reset to new random loop
-        this.app.simpleGenerator.reset();
+        this.app.musicGenerator.reset();
         this.app.uiManager.showMessage('Generated new loop', 'success');
     }
 

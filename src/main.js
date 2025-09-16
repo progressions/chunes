@@ -2,7 +2,7 @@
 
 const blessed = require('blessed');
 const { BetterAudioPlayer } = require('./audio/betterPlayer');
-const { SimpleGenerator } = require('./music/simpleGenerator');
+const { ProceduralGenerator } = require('./music/proceduralGenerator');
 const { UIManager } = require('./ui/display');
 const { ControlHandler } = require('./ui/controls');
 const { LiveMode } = require('./modes/live');
@@ -18,7 +18,7 @@ class ChiptuneGenerator {
 
         // Initialize all subsystems
         this.audioPlayer = new BetterAudioPlayer();
-        this.simpleGenerator = new SimpleGenerator();
+        this.musicGenerator = new ProceduralGenerator();
         this.bufferManager = new BufferManager();
         this.sessionManager = new SessionManager();
 
@@ -90,7 +90,7 @@ class ChiptuneGenerator {
 
         try {
             // Check for musical events
-            const events = this.simpleGenerator.update();
+            const events = this.musicGenerator.update();
 
             if (events) {
                 // Play notes on channels
@@ -175,9 +175,25 @@ class ChiptuneGenerator {
         this.parameters[param] = value;
         this.uiManager.updateParameters(this.parameters);
 
-        // Update simple generator
-        if (param === 'tempo' && this.simpleGenerator) {
-            this.simpleGenerator.setTempo(value);
+        // Update music generator
+        if (this.musicGenerator) {
+            switch (param) {
+                case 'tempo':
+                    this.musicGenerator.setTempo(value);
+                    break;
+                case 'genre':
+                    this.musicGenerator.setGenre(value);
+                    break;
+                case 'key':
+                    this.musicGenerator.setKey(value);
+                    break;
+                case 'scale':
+                    this.musicGenerator.setScale(value);
+                    break;
+                case 'loopLength':
+                    this.musicGenerator.setLoopLength(value);
+                    break;
+            }
         }
     }
 
